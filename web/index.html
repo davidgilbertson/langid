@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>langid prototype</title>
+  <style>
+    :root {
+      color-scheme: light;
+    }
+
+    body {
+      margin: 24px;
+      max-width: 880px;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      color: #2f2f2f;
+      background: #fafafa;
+      line-height: 1.5;
+    }
+
+    textarea {
+      width: 100%;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 14px;
+      padding: 12px;
+      border: 1px solid #d0d0d0;
+      border-radius: 6px;
+      background: #fff;
+    }
+
+    strong {
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+<h1>langid prototype</h1>
+<textarea id="snippet" rows="20" placeholder="Enter code here…"></textarea>
+
+<p>
+  Detected language: <strong id="lang">—</strong>
+</p>
+<script type="module" src="app.js"></script>
+</body>
+</html>

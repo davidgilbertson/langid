@@ -1,0 +1,20 @@
+[project]
+name = "langid"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "black>=25.12.0",
+    "boto3>=1.42.24",
+    "boto3-stubs~=1.42.24",
+    "datasets>=4.4.2",
+    "pandas>=2.3.3",
+    "pandas-stubs~=2.3.3",
+    "python-dotenv>=1.2.1",
+    "rich>=14.2.0",
+    "scikit-learn>=1.8.0",
+    "smart-open[s3]>=7.5.0",
+    "starlette>=0.51.0",
+    "uvicorn>=0.40.0",
+]
