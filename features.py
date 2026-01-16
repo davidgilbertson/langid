@@ -1,3 +1,6 @@
+from pathlib import Path
+import hashlib
+
 import pandas as pd
 
 from data.utils import get_stack_data
@@ -6,7 +9,52 @@ from tools import stopwatch
 # These are LLM-generated reserved words per language, with a few human additions.
 # They're later filtered to the most 'important' features
 raw_tokens = [
-    # Misc
+    # Symbols
+    "#",
+    "# ",
+    "#!",
+    "#!/usr/bin/env",
+    "#!/bin/",
+    "#include <",
+    "<?php",
+    "?>",
+    "/*",
+    "/**",
+    "/*!",
+    "*/",
+    "//",
+    "// ",
+    "///",
+    "//!",
+    "'''",
+    "--",
+    "-- ",
+    "--[[",
+    "--]]",
+    '@"',
+    "&&",
+    "||",
+    ";;",
+    "[[",
+    "]]",
+    "$(",
+    "${",
+    "$@",
+    "$#",
+    "$?",
+    "?.",
+    "??",
+    "??=",
+    "!==",
+    "===",
+    "|-",
+    ">-",
+    "```",
+    "`",
+    "~~",
+    "- [ ]",
+    ":\\n\\t",
+    "::<",
     ": ",
     ':"',
     ': "',
@@ -16,9 +64,13 @@ raw_tokens = [
     "= '",
     ":=",
     "=>",
+    "=> {",
+    "=> (",
     "->",
     "::",
     ";\n",
+    " | ",
+    " & ",
     # C
     "_Bool",
     "_Complex",
@@ -34,7 +86,7 @@ raw_tokens = [
     "double",
     "else",
     "enum ",
-    "extern",
+    "extern ",
     "float",
     "for",
     "goto",
@@ -138,7 +190,8 @@ raw_tokens = [
     "switch",
     "template",
     "template<",
-    "this",
+    "this ",
+    "this.",
     "thread_local",
     "throw",
     "true",
@@ -433,6 +486,7 @@ raw_tokens = [
     "when",
     "while",
     # PHP
+    "php",
     "abstract",
     "and",
     "array",
@@ -1056,7 +1110,6 @@ raw_tokens = [
     "[",
     "]",
     ";",
-    "#",
     # Java
     "abstract",
     "assert",
@@ -1409,31 +1462,39 @@ def extract_features_batch(snippets: list[str]) -> dict[str, list[bool]]:
     return features
 
 
-def generate_features(df: pd.DataFrame | None = None, save=True) -> pd.DataFrame:
-    df = get_stack_data(snippet_limit=10) if df is None else df
+def generate_features_once(snippet: str) -> list[bool]:
+    snippet = snippet.replace("\r\n", "\n").replace("\r", "\n")
+    return [token in snippet for token in tokens]
+
+
+def generate_features(df: pd.DataFrame | None = None) -> pd.DataFrame:
+    df = get_stack_data() if df is None else df
+    lang_counts = df.Language.value_counts().sort_index()
+    fingerprint = (
+        f"rows={len(df)}\ntokens={'\n'.join(tokens)}\n{lang_counts.to_string()}"
+    )
+    data_hash = hashlib.sha256(fingerprint.encode("utf-8")).hexdigest()[:12]
+    feature_file = Path(f"features/features_{data_hash}.parquet")
+
+    if feature_file.exists():
+        print(f"⚡ Using cached features from {feature_file}")
+        return pd.read_parquet(feature_file)
+
     with stopwatch("extracting features"):
-        snippets = [
-            snippet.replace("\r\n", "\n").replace("\r", "\n") for snippet in df.Snippet
-        ]
-
         features_matrix = []
-        for snippet in snippets:
-            snippet = snippet.replace("\r\n", "\n").replace("\r", "\n")
-            features_matrix.append([token in snippet for token in tokens])
+        for snippet in df.Snippet:
+            features_matrix.append(generate_features_once(snippet))
 
-        features_df = pd.DataFrame(features_matrix, columns=tokens)
-        features_df["Language"] = df.Language
+    features_df = pd.DataFrame(features_matrix, columns=tokens)
+    features_df["Target"] = df.Language.to_list()
 
-    features_df = features_df.rename(columns={"Language": "Target"})
-
-    if save:
-        features_df.to_parquet("features/features.parquet")
+    features_df.to_parquet(feature_file, index=False)
 
     return features_df
 
 
 if __name__ == "__main__":
-    df = get_stack_data(snippet_limit=10, subset=0.1)
-    generate_features(
-        df=df,
+    df = get_stack_data()
+    features = generate_features(
+        df=df.head(),
     )

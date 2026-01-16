@@ -19,7 +19,7 @@ s3 = boto3.Session(
 ).client("s3")
 
 OLD_DB_PATH = "E:/Datasets/the_stack_select"
-NEW_DB_PATH = "E:/Datasets/the_stack_select_html"
+NEW_DB_PATH = "E:/Datasets/the_stack_select_next"
 SKIP = 300
 TAKE = 100
 

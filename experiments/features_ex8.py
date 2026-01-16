@@ -178,4 +178,4 @@ with stopwatch("Build feature matrix"):
         rows.append(feature_row)
 
 feature_df = pd.DataFrame(rows)
-feature_df.to_parquet("features/features.parquet", index=False)
+feature_df.to_parquet("features.parquet", index=False)

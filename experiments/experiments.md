@@ -363,4 +363,12 @@ OK, better train and perf tuning setup, works like this:
 Testing on just 6 languages to align with https://huggingface.co/huggingface/CodeBERTa-language-id
 `["Go", "Java", "JavaScript", "PHP", "Python", "Ruby"]`
 And full snippets.
-This gets 99% F1 and only needs 74 features, so is < 2kb 
+This gets 99% F1 and only needs 74 features, so is < 2kb
+
+# Experiment 14
+
+Cleaned The Stack dataset (see `create_stack_snippets.py`). Split into n-line snippets, then deleted junk (~10k out of ~430k items).
+Makes not much difference:
+
+- With 10-line snippets (420k rows): F1 is 88.6% with 456 features
+- With 20-line snippets (210k rows): F1 is 93.9% with 398 features 

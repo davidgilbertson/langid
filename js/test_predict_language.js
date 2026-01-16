@@ -12,9 +12,6 @@ const table = tableFromIPC(buffer);
 const languageColumn = table.getChild("Language");
 const snippetColumn = table.getChild("Snippet");
 
-// If you want to sample a parquet file instead:
-// SELECT * FROM 'features/features.parquet' LIMIT 5;
-
 const sampleCount = null;
 const total = table.numRows;
 const indices = sampleCount === null

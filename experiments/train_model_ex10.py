@@ -8,7 +8,7 @@ from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 from tools import stopwatch
 
-df = pd.read_parquet("features/features.parquet")
+df = pd.read_parquet("features.parquet")
 
 X = df.drop(columns=["Target"])
 y = df["Target"]

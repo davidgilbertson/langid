@@ -9,6 +9,13 @@ async function loadModel() {
 
 }
 
+function softmax(scores) {
+  const max = Math.max(...scores);
+  const exps = scores.map((score) => Math.exp(score - max));
+  const sum = exps.reduce((total, value) => total + value, 0);
+  return exps.map((value) => value / sum);
+}
+
 function predict(snippet) {
   const tokens = model.features;
   const coef = model.coef;
@@ -16,25 +23,28 @@ function predict(snippet) {
   const languages = model.classes;
 
   const normalized = snippet.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
-  // const feats = tokens.map((token) => (normalized.includes(token) ? 1 : 0));
   const feats = tokens.map(token => normalized.includes(token));
 
   let bestIndex = 0;
   let bestScore = -Infinity;
+  const scores = [];
 
   for (let i = 0; i < languages.length; i++) {
     const row = coef[i];
     let score = bias[i];
     for (let j = 0; j < feats.length; j++) {
+      // TODO (@davidgilbertson): given feats[j] is boolean, no multiplication required?
       score += feats[j] * row[j];
     }
+    scores.push(score);
     if (score > bestScore) {
       bestScore = score;
       bestIndex = i;
     }
   }
 
-  return languages[bestIndex];
+  const probs = softmax(scores);
+  return {language: languages[bestIndex], prob: probs[bestIndex]};
 }
 
 snippetEl.addEventListener("input", () => {
@@ -47,7 +57,9 @@ snippetEl.addEventListener("input", () => {
     langEl.textContent = "—";
     return;
   }
-  langEl.textContent = predict(snippet);
+  const prediction = predict(snippet);
+  console.log("> prediction", prediction);
+  langEl.textContent = `${prediction.language} (${(prediction.prob * 100).toFixed(1)}%)`;
 });
 
 await loadModel();

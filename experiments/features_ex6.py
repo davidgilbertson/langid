@@ -208,7 +208,9 @@ def extract_features(snippet: str) -> dict[str, bool]:
         "HasGoPackage": has_word("package"),
         "HasGoImportBlock": has_symbol("import ("),
         # CSS / Less / SCSS
-        "HasCssProperty": has_regex(r"\b(color|display|font|margin|padding|border)\s*:"),
+        "HasCssProperty": has_regex(
+            r"\b(color|display|font|margin|padding|border)\s*:"
+        ),
         "HasScssVar": has_regex(r"\$[A-Za-z_-][A-Za-z0-9_-]*\s*:"),
         "HasScssMixin": has_word("@mixin"),
         "HasScssInclude": has_word("@include"),
@@ -228,12 +230,15 @@ def extract_features(snippet: str) -> dict[str, bool]:
         "HasSqlCreateTable": has_word_ci("create") and has_word_ci("table"),
         "HasSqlInsertInto": has_word_ci("insert") and has_word_ci("into"),
         # JSON / INI / YAML / Markdown / XML
-        "HasJsonObject": has_symbol("{") and has_symbol("}") and has_regex(r'"[^"]+"\s*:'),
+        "HasJsonObject": has_symbol("{")
+        and has_symbol("}")
+        and has_regex(r'"[^"]+"\s*:'),
         "HasIniSection": has_regex(r"^\s*\[[^\]]+\]\s*$"),
         "HasIniKeyValue": has_regex(r"^\s*[A-Za-z0-9_.-]+\s*=\s*.+$"),
         "HasIniComment": has_regex(r"^\s*[#;]"),
         "HasYamlList": has_line_starting_with("- "),
-        "HasYamlDocMarker": has_line_starting_with("---") or has_line_starting_with("..."),
+        "HasYamlDocMarker": has_line_starting_with("---")
+        or has_line_starting_with("..."),
         "HasYamlKeyValue": has_regex(r"^\s*[A-Za-z0-9_.-]+\s*:\s+.+$"),
         "HasMarkdownHeading": has_line_starting_with("#"),
         "HasMarkdownList": has_regex(r"^\s*[-*+]\s+"),
@@ -326,4 +331,4 @@ if __name__ == "__main__":
     items_per_second = len(features) / (run_time / 1000)
     print(f"items/second: {items_per_second:,.0f}")
 
-    features.to_parquet("features/features.parquet")
+    features.to_parquet("features.parquet")

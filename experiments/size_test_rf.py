@@ -1,4 +1,3 @@
-
 import pickle
 import json
 import os
@@ -10,7 +9,7 @@ from tools import stopwatch
 
 # Load data
 print("Loading data...")
-df = pd.read_parquet("features/features.parquet")
+df = pd.read_parquet("features.parquet")
 X = df.drop(columns=["Target"])
 y = df["Target"]
 
@@ -31,6 +30,7 @@ with open(pickle_path, "wb") as f:
 pickle_size_kb = os.path.getsize(pickle_path) / 1024
 print(f"Pickle Size (n=10, depth=10): {pickle_size_kb:.2f} KB")
 
+
 # 2. JSON Size (Simulating a highly optimized JS format)
 # A tree is basically list of (feature_index, threshold, left_child, right_child, value)
 def tree_to_dict(tree):
@@ -41,9 +41,10 @@ def tree_to_dict(tree):
         "children_right": tree.children_right.tolist(),
         "feature": tree.feature.tolist(),
         "threshold": tree.threshold.tolist(),
-        # We don't even strictly need values for leaf nodes if we just care about majority class, 
+        # We don't even strictly need values for leaf nodes if we just care about majority class,
         # but let's assume we do for probabilities
     }
+
 
 forest_data = []
 for estimator in clf.estimators_:
@@ -61,4 +62,6 @@ clf_large = RandomForestClassifier(n_estimators=100, max_depth=None, random_stat
 clf_large.fit(X_trn, y_trn)
 with open("rf_large.pkl", "wb") as f:
     pickle.dump(clf_large, f)
-print(f"Pickle Size (n=100, depth=None): {os.path.getsize('rf_large.pkl') / 1024:.2f} KB")
+print(
+    f"Pickle Size (n=100, depth=None): {os.path.getsize('rf_large.pkl') / 1024:.2f} KB"
+)

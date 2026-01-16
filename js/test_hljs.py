@@ -81,8 +81,21 @@ def get_hljs_predictions(df: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(results)
 
 
+def get_hljs_score(df: pd.DataFrame) -> float:
+    results_df = get_hljs_predictions(df)
+    return f1_score(
+        results_df.Language,
+        results_df.Prediction.fillna(""),
+        average="macro",
+    )
+
+
 if __name__ == "__main__":
-    df = get_stack_data(snippet_limit=10, subset=0.01)
+    df = get_stack_data(
+        snippet_limit=10,
+        subset=0.1,
+        # languages=["Go", "Java", "JavaScript", "PHP", "Python", "Ruby"],
+    )
 
     with stopwatch("Predicting HLJS predictions"):
         results_df = get_hljs_predictions(df)

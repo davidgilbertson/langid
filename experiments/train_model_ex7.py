@@ -4,7 +4,7 @@ from sklearn.model_selection import train_test_split
 
 from tools import stopwatch
 
-df = pd.read_parquet("features/features.parquet")
+df = pd.read_parquet("features.parquet")
 
 X = df.drop(columns=["Target"])
 y = df["Target"]
@@ -17,7 +17,7 @@ X_trn, X_val, y_trn, y_val = train_test_split(
     stratify=y,
 )
 
-with stopwatch('do it'):
+with stopwatch("do it"):
     X_trn["Target"] = y_trn.values
     centroids = X_trn.groupby("Target").mean()
 

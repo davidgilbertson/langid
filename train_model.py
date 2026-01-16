@@ -1,40 +1,58 @@
 import json
+import hashlib
 from pathlib import Path
+import pickle
 from typing import NamedTuple
 
 import numpy as np
 import pandas as pd
+
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import f1_score
 from sklearn.model_selection import train_test_split
 
+from features import generate_features
 from tools import stopwatch
 
 
-def save_model(model, features: list, rounding=2) -> Path:
-    # When saving the model, put the features in order of importance.
-    # We save the ordered features and also rearrange the weights
+def compact_value(value: float) -> int | float:
+    if value == 0:
+        return 0
+    if float(value).is_integer():
+        return int(value)
+    return float(value)
+
+
+def round_and_compact(values: np.ndarray, decimals: int) -> list:
+    rounded = np.round(values, decimals)
+    if rounded.ndim == 1:
+        return [compact_value(value) for value in rounded]
+    return [[compact_value(value) for value in row] for row in rounded]
+
+
+def save_model_json(model, X: pd.DataFrame, y: pd.Series) -> Path:
+    # We sort the features in order of importance.
+    # We save the ordered features and rearrange the model weights to match
     # You can then shrink the model just by truncating weights and features to top-n
     importance = np.mean(np.abs(model.coef_), axis=0)
     feature_order = np.argsort(-importance)
-    ordered_features = [features[i] for i in feature_order]
+    ordered_features = [X.columns[i] for i in feature_order]
     ordered_coef = model.coef_[:, feature_order]
+    rounding = 1
 
     payload = {
         "features": ordered_features,
         "classes": model.classes_.tolist(),
-        "coef": np.round(ordered_coef, rounding).tolist(),
-        "intercept": np.round(model.intercept_, rounding).tolist(),
+        "coef": round_and_compact(ordered_coef, rounding),
+        "intercept": round_and_compact(model.intercept_, rounding),
     }
 
-    path = Path(__file__).parent / "model.json"
+    # We give this a human-readable name rather than a hash since it must be
+    # manually selected. N=Number, F=Features, L=Languages
+    suffix = f"N={len(X)}_F={len(X.columns)}_L={y.nunique()}"
+    path = Path(f"models/model__{suffix}.json")
+    print(f"Model JSON saved to {path}")
     path.write_text(json.dumps(payload, indent=2))
-
-    # imp_df = (
-    #     pd.DataFrame(dict(Feature=features, Importance=importance))
-    #     .sort_values("Importance", ascending=False)
-    #     .reset_index(drop=True)
-    # )
 
     return path
 
@@ -43,7 +61,8 @@ def save_model(model, features: list, rounding=2) -> Path:
 class TrainResult(NamedTuple):
     f1: float
     model: LogisticRegression
-    model_path: Path | None
+    model_pickle_file: Path
+    model_json_file: Path | None
     features: pd.DataFrame
     X: pd.DataFrame
     y: pd.Series
@@ -56,18 +75,18 @@ class TrainResult(NamedTuple):
 
 
 def train_model(
-    features: pd.DataFrame | None = None,
-    save=True,
+    df: pd.DataFrame,
     frac: float = 1.0,
+    use_cache=True,
 ) -> TrainResult:
-    df = pd.read_parquet("features/features.parquet") if features is None else features
-
     if 0 < frac < 1:
         # Subset of rows
-        df = df.groupby("Target", group_keys=False).sample(frac=frac)
+        df = df.groupby("Language").sample(frac=frac, random_state=0)
 
-    X = df.drop(columns=["Target"])
-    y = df["Target"]
+    features_df = generate_features(df)
+
+    X = features_df.drop(columns=["Target"])
+    y = features_df["Target"]
 
     X_trn, X_val, y_trn, y_val = train_test_split(
         X,
@@ -77,32 +96,51 @@ def train_model(
         stratify=y,
     )
 
-    with stopwatch(
-        f"Training on {len(df):,} rows, {len(X.columns)} features, and {y.nunique()} languages"
-    ):
-        model = LogisticRegression(
-            max_iter=1000,
-            class_weight="balanced",
-        )
+    # Cache keyed by dataset stats + feature set + model name (no hyperparams).
+    target_counts = features_df.Target.value_counts().sort_index()
+    fingerprint = (
+        "model=LogisticRegression\n"
+        f"rows={len(features_df)}\n"
+        f"mean_len={df.Snippet.str.len().mean()}\n"
+        f"features={len(X.columns)}\n"
+        f"{target_counts.to_string()}\n"
+        f"columns:\n" + "\n".join(features_df.columns)
+    )
+    model_hash = hashlib.sha256(fingerprint.encode("utf-8")).hexdigest()[:12]
+    model_pickle_file = Path(f"models/model_{model_hash}.pkl")
+    model_pickle_file.parent.mkdir(exist_ok=True)
+    if model_pickle_file.exists() and use_cache:
+        print(f"⚡ Using cached model from {model_pickle_file}")
+        model: LogisticRegression = pickle.loads(model_pickle_file.read_bytes())
+    else:
+        with stopwatch(
+            f"Training on {len(features_df):,} rows, {len(X.columns)} features, and {y.nunique()} languages"
+        ):
+            model = LogisticRegression(
+                max_iter=1000,
+                class_weight="balanced",
+            )
+            model.fit(X_trn, y_trn)
 
-        model.fit(X_trn, y_trn)
+    preds = model.predict(X_val)
+    probs = model.predict_proba(X_val)
 
-        preds = model.predict(X_val)
-        probs = model.predict_proba(X_val)
-
-        # Accuracy is misleading for imbalanced classes (per-snippet counts skew).
-        f1 = f1_score(y_val, preds, average="macro")
+    # Accuracy is misleading for imbalanced classes (per-snippet counts skew).
+    f1 = f1_score(y_val, preds, average="macro")
     print(f"F1 (macro): {f1:.1%}")
 
-    model_path = None
-    if save:
-        model_path = save_model(model, features=X.columns.to_list())
+    # Save the model object (for Python inference)
+    model_pickle_file.write_bytes(pickle.dumps(model))
+
+    # Save the model as JSON (for JS inference)
+    model_json_file = save_model_json(model, X=X, y=y)
 
     return TrainResult(
         f1=f1,
         model=model,
-        model_path=model_path,
-        features=df,
+        model_pickle_file=model_pickle_file,
+        model_json_file=model_json_file,
+        features=features_df,
         X=X,
         y=y,
         X_trn=X_trn,
@@ -115,7 +153,14 @@ def train_model(
 
 
 if __name__ == "__main__":
-    result = train_model(frac=0.1, save=False)
+    # result = train_model(frac=0.1, save=False)
+    df = pd.read_parquet("E:/Datasets/the_stack_whole_files.parquet")
+    # df = pd.read_parquet("E:/Datasets/the_stack_20_line_snippets.parquet")
+
+    result = train_model(
+        df=df,
+        frac=0.1,
+    )
 
     # # %% - Inspect the wrong answers
     # from data.utils import get_stack_data
