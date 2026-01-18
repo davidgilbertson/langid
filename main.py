@@ -4,9 +4,9 @@ from analyze_model import (
     generate_f1_curve,
     find_ideal_size,
     generate_rounding_curve,
-    get_gzipped_size_kb,
 )
 from train_model import train_model
+from tools import get_gzipped_size_kb, model_to_dict, trim_model_features
 
 
 if __name__ == "__main__":
@@ -17,28 +17,33 @@ if __name__ == "__main__":
 
     results = train_model(df)
 
+    # See how changes in number of features affects F1
     f1_df = generate_f1_curve(
         model=results.model,
         X=results.X_val,
         y=results.y_val,
     )
 
+    # See how different rounding values affects F1 and Size
     round_df = generate_rounding_curve(
         model=results.model,
         X=results.X_val,
         y=results.y_val,
     )
 
+    # How many features are needed to achieve F1 - 1%?
     n_features, f1 = find_ideal_size(
         model=results.model,
         X=results.X_val,
         y=results.y_val,
-        f1_delta=0.0,
+        f1_delta=0.01,
     )
 
+    # How big will the model be over the network
     size_kb = get_gzipped_size_kb(
-        model_json_path=results.model_json_file,
+        model=results.model,
+        X=results.X,
         n_features=n_features,
     )
 
-    print(f"F1={f1:.1%} with {n_features} features. Size={size_kb:,.1f} KB (gzipped).")
+    print(f"F1={f1:.1%} with {n_features} features. {size_kb:,.1f} KB (gzipped).")

@@ -12,47 +12,26 @@ from sklearn.metrics import f1_score
 from sklearn.model_selection import train_test_split
 
 from features import generate_features
-from tools import stopwatch
+from tools import model_to_dict, stopwatch
 
 
-def compact_value(value: float) -> int | float:
-    if value == 0:
-        return 0
-    if float(value).is_integer():
-        return int(value)
-    return float(value)
-
-
-def round_and_compact(values: np.ndarray, decimals: int) -> list:
-    rounded = np.round(values, decimals)
-    if rounded.ndim == 1:
-        return [compact_value(value) for value in rounded]
-    return [[compact_value(value) for value in row] for row in rounded]
-
-
-def save_model_json(model, X: pd.DataFrame, y: pd.Series) -> Path:
-    # We sort the features in order of importance.
-    # We save the ordered features and rearrange the model weights to match
-    # You can then shrink the model just by truncating weights and features to top-n
-    importance = np.mean(np.abs(model.coef_), axis=0)
-    feature_order = np.argsort(-importance)
-    ordered_features = [X.columns[i] for i in feature_order]
-    ordered_coef = model.coef_[:, feature_order]
-    rounding = 1
-
-    payload = {
-        "features": ordered_features,
-        "classes": model.classes_.tolist(),
-        "coef": round_and_compact(ordered_coef, rounding),
-        "intercept": round_and_compact(model.intercept_, rounding),
-    }
+def save_model_json(
+    model,
+    X: pd.DataFrame,
+    y: pd.Series,
+) -> Path:
+    model_dict = model_to_dict(
+        model=model,
+        X=X,
+        json_decimals=1,
+    )
 
     # We give this a human-readable name rather than a hash since it must be
     # manually selected. N=Number, F=Features, L=Languages
     suffix = f"N={len(X)}_F={len(X.columns)}_L={y.nunique()}"
     path = Path(f"models/model__{suffix}.json")
     print(f"Model JSON saved to {path}")
-    path.write_text(json.dumps(payload, indent=2))
+    path.write_text(json.dumps(model_dict, indent=2))
 
     return path
 
@@ -133,7 +112,11 @@ def train_model(
     model_pickle_file.write_bytes(pickle.dumps(model))
 
     # Save the model as JSON (for JS inference)
-    model_json_file = save_model_json(model, X=X, y=y)
+    model_json_file = save_model_json(
+        model,
+        X=X,
+        y=y,
+    )
 
     return TrainResult(
         f1=f1,

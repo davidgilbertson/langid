@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import NamedTuple
 
 import numpy as np
@@ -7,20 +6,11 @@ import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import f1_score
 
+from tools import get_gzipped_size_kb, model_to_dict, smart_round
+
 
 def score(y_true: ArrayLike, y_pred: ArrayLike) -> float:
     return f1_score(y_true, y_pred, average="macro")
-
-
-def get_gzipped_size_kb(model_json_path: Path, n_features: int) -> float:
-    import gzip
-    import json
-
-    model = json.loads(model_json_path.read_text())
-    model["features"] = model["features"][:n_features]
-    model["coef"] = [row[:n_features] for row in model["coef"]]
-    payload = json.dumps(model).encode("utf-8")
-    return len(gzip.compress(payload)) / 1024
 
 
 def generate_f1_curve(
@@ -62,29 +52,22 @@ def generate_rounding_curve(
 ) -> pd.DataFrame:
     """Compute F1 after rounding weights to different decimal places."""
 
-    def compact_value(value: float) -> int | float:
-        if value == 0:
-            return 0
-        if float(value).is_integer():
-            return int(value)
-        return float(value)
-
-    def round_and_compact(values: np.ndarray, places: int) -> list:
-        rounded = np.round(values, places)
-        if rounded.ndim == 1:
-            return [compact_value(value) for value in rounded]
-        return [[compact_value(value) for value in row] for row in rounded]
-
     languages = model.classes_
 
     results = []
     for places in range(max_decimals + 1):
-        coef = np.array(round_and_compact(model.coef_, places), dtype=float)
-        bias = np.array(round_and_compact(model.intercept_, places), dtype=float)
+        coef = np.array(smart_round(model.coef_, places), dtype=float)
+        bias = np.array(smart_round(model.intercept_, places), dtype=float)
         scores = X @ coef.T + bias
         preds = np.take(languages, np.argmax(scores, axis=1))
         f1 = score(y, preds)
-        results.append(dict(Decimals=places, F1=f1))
+        model_dict = model_to_dict(
+            model=model,
+            X=X,
+            json_decimals=places,
+        )
+        size_kb = get_gzipped_size_kb(model_dict)
+        results.append(dict(Decimals=places, F1=f1, SizeKb=size_kb))
         print(f"F1 @ rounding={places}: {f1:.2%}", end="\r")
 
     return pd.DataFrame(results)
@@ -145,18 +128,18 @@ if __name__ == "__main__":
     df = pd.read_parquet("E:/Datasets/the_stack_whole_files.parquet")
     results = train_model(df)
 
-    # f1_df = generate_f1_curve(
-    #     model=results.model,
-    #     X=results.X_val,
-    #     y=results.y_val,
-    #     number_of_n=10,
-    # )
-
-    rounding_df = generate_rounding_curve(
+    f1_df = generate_f1_curve(
         model=results.model,
         X=results.X_val,
         y=results.y_val,
+        number_of_n=10,
     )
+
+    # rounding_df = generate_rounding_curve(
+    #     model=results.model,
+    #     X=results.X_val,
+    #     y=results.y_val,
+    # )
 
     # ideal_n, ideal_f1 = find_ideal_size(
     #     model=results.model,
