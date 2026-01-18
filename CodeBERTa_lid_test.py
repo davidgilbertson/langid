@@ -1,7 +1,11 @@
+from sklearn.model_selection import train_test_split
+
 from tools import stopwatch
 from transformers import pipeline
 from sklearn.metrics import f1_score
 import pandas as pd
+
+from train_model import train_model
 
 ###################################
 ############  RESULTS  ############
@@ -10,12 +14,21 @@ import pandas as pd
 # the_stack_20_line_snippets: 91.4%
 # the_stack_files: 94.3%
 
-# df = pd.read_parquet("E:/Datasets/the_stack_10_line_snippets.parquet")
+df = pd.read_parquet("E:/Datasets/the_stack_10_line_snippets.parquet")
 # df = pd.read_parquet("E:/Datasets/the_stack_20_line_snippets.parquet")
-df = pd.read_parquet("E:/Datasets/the_stack_whole_files.parquet")
+# df = pd.read_parquet("E:/Datasets/the_stack_whole_files.parquet")
 
 # This model only does six languages
 df = df[df.Language.isin(["Go", "Java", "JavaScript", "PHP", "Python", "Ruby"])]
+
+# For a fair comparison, take the same split we do in `train_model`
+df_trn, df_val = train_test_split(
+    df,
+    test_size=0.2,
+    random_state=42,
+    stratify=df.Language,
+)
+df = df_val
 
 classifier = pipeline(
     "text-classification",

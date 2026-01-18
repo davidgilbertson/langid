@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import NamedTuple
 
 import numpy as np
@@ -11,11 +12,22 @@ def score(y_true: ArrayLike, y_pred: ArrayLike) -> float:
     return f1_score(y_true, y_pred, average="macro")
 
 
+def get_gzipped_size_kb(model_json_path: Path, n_features: int) -> float:
+    import gzip
+    import json
+
+    model = json.loads(model_json_path.read_text())
+    model["features"] = model["features"][:n_features]
+    model["coef"] = [row[:n_features] for row in model["coef"]]
+    payload = json.dumps(model).encode("utf-8")
+    return len(gzip.compress(payload)) / 1024
+
+
 def generate_f1_curve(
     model: LogisticRegression,
     X: pd.DataFrame,
     y: pd.Series,
-    number_of_n=100,
+    number_of_n=50,
 ) -> pd.DataFrame:
     """Compute F1 as the number of top features increases."""
     assert number_of_n >= 2
