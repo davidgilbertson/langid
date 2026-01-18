@@ -52,7 +52,6 @@
       return;
     }
     const prediction = await window.langidPredictLanguage(snippet);
-    console.log("> prediction", prediction);
     langEl.textContent = `${prediction.language} (${(prediction.prob * 100).toFixed(1)}%)`;
   });
 </script>

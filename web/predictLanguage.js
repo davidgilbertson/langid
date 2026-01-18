@@ -11,37 +11,30 @@ function ensureModelLoaded() {
   return modelPromise;
 }
 
-function softmax(scores) {
-  const max = Math.max(...scores);
-  const exps = scores.map((score) => Math.exp(score - max));
-  const sum = exps.reduce((total, value) => total + value, 0);
-  return exps.map((value) => value / sum);
-}
-
 function predict(snippet) {
   const languages = model.classes;
 
-  const normalized = snippet.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
-  const feats = model.features.map((token) => normalized.includes(token));
+  const features = model.features.map((token) => snippet.includes(token));
 
-  let bestIndex = 0;
-  let bestScore = -Infinity;
   const scores = [];
 
   for (let i = 0; i < languages.length; i++) {
     const row = (model.coef)[i];
     let score = (model.intercept)[i];
-    for (let j = 0; j < feats.length; j++) {
-      score += feats[j] * row[j];
+    for (let j = 0; j < features.length; j++) {
+      score += features[j] * row[j];
     }
     scores.push(score);
-    if (score > bestScore) {
-      bestScore = score;
-      bestIndex = i;
-    }
   }
 
-  const probs = softmax(scores);
+  const maxScore = Math.max(...scores);
+  const bestIndex = scores.indexOf(maxScore);
+
+  // Softmax
+  const exps = scores.map((score) => Math.exp(score - maxScore));
+  const sum = exps.reduce((total, value) => total + value, 0);
+  const probs = exps.map((value) => value / sum);
+
   return {language: languages[bestIndex], prob: probs[bestIndex]};
 }
 
