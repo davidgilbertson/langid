@@ -17,18 +17,16 @@ from tools import model_to_dict, stopwatch
 
 def save_model_json(
     model,
-    X: pd.DataFrame,
     y: pd.Series,
 ) -> Path:
     model_dict = model_to_dict(
         model=model,
-        X=X,
         json_decimals=1,
     )
 
     # We give this a human-readable name rather than a hash since it must be
     # manually selected. N=Number, F=Features, L=Languages
-    suffix = f"N={len(X)}_F={len(X.columns)}_L={y.nunique()}"
+    suffix = f"N={len(y)}_F={model.n_features_in_}_L={y.nunique()}"
     path = Path(f"models/model__{suffix}.json")
     print(f"Model JSON saved to {path}")
     path.write_text(json.dumps(model_dict, indent=2))
@@ -114,7 +112,6 @@ def train_model(
     # Save the model as JSON (for JS inference)
     model_json_file = save_model_json(
         model,
-        X=X,
         y=y,
     )
 

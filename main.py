@@ -6,7 +6,7 @@ from analyze_model import (
     generate_rounding_curve,
 )
 from train_model import train_model
-from tools import get_gzipped_size_kb, model_to_dict, trim_model_features
+from tools import get_gzipped_size_kb
 
 
 if __name__ == "__main__":
@@ -42,7 +42,6 @@ if __name__ == "__main__":
     # How big will the model be over the network
     size_kb = get_gzipped_size_kb(
         model=results.model,
-        X=results.X,
         n_features=n_features,
     )
 

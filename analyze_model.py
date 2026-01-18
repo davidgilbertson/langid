@@ -17,17 +17,17 @@ def generate_f1_curve(
     model: LogisticRegression,
     X: pd.DataFrame,
     y: pd.Series,
-    number_of_n=50,
+    steps=50,
 ) -> pd.DataFrame:
     """Compute F1 as the number of top features increases."""
-    assert number_of_n >= 2
+    assert steps >= 2
 
     coef = model.coef_
     bias = model.intercept_
     languages = model.classes_
 
     total_tokens = coef.shape[1]
-    ns = np.rint(np.linspace(1, total_tokens, num=number_of_n)).astype(int).tolist()
+    ns = np.rint(np.linspace(1, total_tokens, num=steps)).astype(int).tolist()
     ns[0] = 1
     ns[-1] = total_tokens
 
@@ -63,7 +63,6 @@ def generate_rounding_curve(
         f1 = score(y, preds)
         model_dict = model_to_dict(
             model=model,
-            X=X,
             json_decimals=places,
         )
         size_kb = get_gzipped_size_kb(model_dict)
@@ -132,7 +131,7 @@ if __name__ == "__main__":
         model=results.model,
         X=results.X_val,
         y=results.y_val,
-        number_of_n=10,
+        steps=10,
     )
 
     # rounding_df = generate_rounding_curve(

@@ -60,14 +60,13 @@ def smart_round(values: np.ndarray, decimals: int) -> list:
 
 
 def model_to_dict(
-    model,
-    X,
+    model: LogisticRegression,
     json_decimals: int | None | object = JSON_DECIMALS_UNSET,
 ) -> dict:
     # Sort features by importance and align coefficients accordingly.
     importance = np.mean(np.abs(model.coef_), axis=0)
     feature_order = np.argsort(-importance)
-    ordered_features = [X.columns[i] for i in feature_order]
+    ordered_features = [model.feature_names_in_[i] for i in feature_order]
     ordered_coef = model.coef_[:, feature_order]
 
     if json_decimals is JSON_DECIMALS_UNSET:
@@ -99,14 +98,11 @@ def trim_model_features(model: dict, n_features: int) -> dict:
 
 def get_gzipped_size_kb(
     model: Path | str | dict | LogisticRegression,
-    X=None,
     json_decimals: int | None | object = JSON_DECIMALS_UNSET,
     n_features: int | None = None,
 ) -> float:
     if isinstance(model, LogisticRegression):
-        if X is None:
-            raise ValueError("X is required when passing a LogisticRegression model.")
-        model_dict = model_to_dict(model, X, json_decimals)
+        model_dict = model_to_dict(model, json_decimals)
         if n_features is not None:
             model_dict = trim_model_features(model_dict, n_features)
         payload = json.dumps(model_dict)
