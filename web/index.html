@@ -40,6 +40,21 @@
 <p>
   Detected language: <strong id="lang">—</strong>
 </p>
-<script type="module" src="app.js"></script>
+<script src="predictLanguage.js"></script>
+<script>
+  const langEl = document.getElementById("lang");
+  const snippetEl = document.getElementById("snippet");
+
+  snippetEl.addEventListener("input", async () => {
+    const snippet = snippetEl.value || "";
+    if (snippet.length <= 5) {
+      langEl.textContent = "—";
+      return;
+    }
+    const prediction = await window.langidPredictLanguage(snippet);
+    console.log("> prediction", prediction);
+    langEl.textContent = `${prediction.language} (${(prediction.prob * 100).toFixed(1)}%)`;
+  });
+</script>
 </body>
 </html>

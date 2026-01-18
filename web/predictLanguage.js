@@ -1,12 +1,14 @@
-const langEl = document.getElementById("lang");
-const snippetEl = document.getElementById("snippet");
-
 let model = null;
+let modelPromise = null;
 
 async function loadModel() {
   const res = await fetch("model.json", {cache: "no-store"});
   model = await res.json();
+}
 
+function ensureModelLoaded() {
+  if (!modelPromise) modelPromise = loadModel();
+  return modelPromise;
 }
 
 function softmax(scores) {
@@ -17,21 +19,18 @@ function softmax(scores) {
 }
 
 function predict(snippet) {
-  const tokens = model.features;
-  const coef = model.coef;
-  const bias = model.intercept;
   const languages = model.classes;
 
   const normalized = snippet.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
-  const feats = tokens.map(token => normalized.includes(token));
+  const feats = model.features.map((token) => normalized.includes(token));
 
   let bestIndex = 0;
   let bestScore = -Infinity;
   const scores = [];
 
   for (let i = 0; i < languages.length; i++) {
-    const row = coef[i];
-    let score = bias[i];
+    const row = (model.coef)[i];
+    let score = (model.intercept)[i];
     for (let j = 0; j < feats.length; j++) {
       score += feats[j] * row[j];
     }
@@ -46,19 +45,9 @@ function predict(snippet) {
   return {language: languages[bestIndex], prob: probs[bestIndex]};
 }
 
-snippetEl.addEventListener("input", () => {
-  if (!model) {
-    langEl.textContent = "model not loaded yet";
-    return;
-  }
-  const snippet = snippetEl.value || "";
-  if (snippet.length <= 5) {
-    langEl.textContent = "—";
-    return;
-  }
-  const prediction = predict(snippet);
-  console.log("> prediction", prediction);
-  langEl.textContent = `${prediction.language} (${(prediction.prob * 100).toFixed(1)}%)`;
-});
+window.langidPredictLanguage = async function langidPredictLanguage(snippet) {
+  await ensureModelLoaded();
+  return predict(snippet);
+};
 
-await loadModel();
+ensureModelLoaded();
