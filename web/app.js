@@ -33,7 +33,6 @@ function predict(snippet) {
     const row = coef[i];
     let score = bias[i];
     for (let j = 0; j < feats.length; j++) {
-      // TODO (@davidgilbertson): given feats[j] is boolean, no multiplication required?
       score += feats[j] * row[j];
     }
     scores.push(score);
