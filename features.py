@@ -1467,7 +1467,7 @@ def generate_features_once(snippet: str) -> list[bool]:
     return [token in snippet for token in tokens]
 
 
-def generate_features(df: pd.DataFrame | None = None) -> pd.DataFrame:
+def generate_features(df: pd.DataFrame | None = None, use_cache=True) -> pd.DataFrame:
     df = get_stack_data() if df is None else df
     lang_counts = df.Language.value_counts().sort_index()
     fingerprint = (
@@ -1476,7 +1476,7 @@ def generate_features(df: pd.DataFrame | None = None) -> pd.DataFrame:
     data_hash = hashlib.sha256(fingerprint.encode("utf-8")).hexdigest()[:12]
     feature_file = Path(f"features/features_{data_hash}.parquet")
 
-    if feature_file.exists():
+    if feature_file.exists() and use_cache:
         print(f"⚡ Using cached features from {feature_file}")
         return pd.read_parquet(feature_file)
 

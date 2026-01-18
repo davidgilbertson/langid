@@ -371,4 +371,21 @@ Cleaned The Stack dataset (see `create_stack_snippets.py`). Split into n-line sn
 Makes not much difference:
 
 - With 10-line snippets (420k rows): F1 is 88.6% with 456 features
-- With 20-line snippets (210k rows): F1 is 93.9% with 398 features 
+- With 20-line snippets (210k rows): F1 is 93.9% with 398 features
+
+# Experiment 15 – Bag of words
+
+Assets:
+
+- `experiments/train_model_ex15.py`
+
+Replace the `generate_features` logic with a `CountVectorizer`.
+
+On the 10-line snippets dataset (150k rows):
+
+| Method              | Runtime | F1    | Size (KB)  |
+|---------------------|---------|-------|------------|
+| `generate_features` | 1 min   | 87.3% | 20 KB      |
+| `CountVectorizer`   | 15 min  | 92.4% | 157,000 KB |
+
+This generates 477,842 features, hence the slowness. We can still sort and use just a subset of these. Taking just the first 5,000 features gets an F1 of 87.5%. 10,000 features gets 89.7% (diminishing returns). In other words, this method can get better results, but needs 10x more features to match the results of `generate_features`, and much more to get further ahead.  

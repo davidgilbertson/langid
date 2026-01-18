@@ -10,8 +10,8 @@ import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import f1_score
 from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import CountVectorizer
 
-from features import generate_features
 from tools import model_to_dict, stopwatch
 
 
@@ -60,7 +60,13 @@ def train_model(
         # Subset of rows
         df = df.groupby("Language").sample(frac=frac, random_state=0)
 
-    features_df = generate_features(df, use_cache=use_cache)
+    vectorizer = CountVectorizer()
+    X_counts = vectorizer.fit_transform(df.Snippet)
+    features_df = pd.DataFrame.sparse.from_spmatrix(
+        X_counts,
+        columns=vectorizer.get_feature_names_out(),
+    )
+    features_df["Target"] = df.Language.to_list()
 
     X = features_df.drop(columns=["Target"])
     y = features_df["Target"]
@@ -144,27 +150,21 @@ if __name__ == "__main__":
             use_cache=False,
         )
 
-    # # %% - Inspect the wrong answers
-    # from data.utils import get_stack_data
-    # model, features, X, y, X_trn, X_val, y_trn, y_val, preds, probs = result
-    # result_df = y_val.to_frame()
-    # result_df["Pred"] = preds
-    # result_df["Confidence"] = np.max(probs, axis=1)
-    # # result_df["Snippet"] = snippets
-    # wrong_df = (
-    #     result_df[y_val.ne(preds)].copy().sort_values("Confidence", ascending=False)
-    # )
-    #
-    # snippets = get_stack_data(snippet_limit=10).Snippet
-    # # Below is dodgy, but snippets and features came from the same place so share an index.
-    # wrong_df["Snippet"] = snippets.loc[wrong_df.index]
-    #
-    # wrong_counts_df = (
-    #     wrong_df.groupby(["Target", "Pred"])
-    #     .size()
-    #     .reset_index(name="Errors")
-    #     .sort_values("Errors", ascending=False)
-    # )
+    # %% - F1 for given subsets of features
+    model_dict = model_to_dict(result.model, json_decimals=None)
+    ordered_features = model_dict["features"]
+    ordered_coef = np.asarray(model_dict["coef"])
+    intercept = np.asarray(model_dict["intercept"])
 
-    # print("Most common error types")
-    # print(wrong_counts_df.head(10))
+    rows = []
+    for n in range(1000, 10001, 1000):
+        features = ordered_features[:n]
+        X_sub = result.X_val[features]
+        X_sparse = X_sub.sparse.to_coo().tocsr()
+        scores = X_sparse @ ordered_coef[:, :n].T + intercept
+        preds = result.model.classes_[np.argmax(scores, axis=1)]
+        f1 = f1_score(result.y_val, preds, average="macro")
+        rows.append({"N": n, "F1": f1})
+        print(f"{n}: {f1:.1%}")
+
+    results_df = pd.DataFrame(rows)

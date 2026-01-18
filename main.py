@@ -31,7 +31,7 @@ if __name__ == "__main__":
         y=results.y_val,
     )
 
-    # How many features are needed to achieve F1 - 1%?
+    # How many features are needed to achieve (F1 - 1%)?
     n_features, f1 = find_ideal_size(
         model=results.model,
         X=results.X_val,
