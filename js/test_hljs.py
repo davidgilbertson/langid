@@ -5,7 +5,6 @@ from pathlib import Path
 import pandas as pd
 from sklearn.metrics import f1_score
 
-from data.utils import get_stack_data
 from tools import stopwatch
 
 
@@ -81,26 +80,15 @@ def get_hljs_predictions(df: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(results)
 
 
-def get_hljs_score(df: pd.DataFrame) -> float:
-    results_df = get_hljs_predictions(df)
-    return f1_score(
-        results_df.Language,
-        results_df.Prediction.fillna(""),
-        average="macro",
-    )
-
-
 if __name__ == "__main__":
-    df = get_stack_data(
-        snippet_limit=10,
-        subset=0.1,
-        # languages=["Go", "Java", "JavaScript", "PHP", "Python", "Ruby"],
-    )
+    df = pd.read_parquet("E:/Datasets/the_stack_10_line_snippets.parquet")
 
-    with stopwatch("Predicting HLJS predictions"):
+    with stopwatch("HLJS predictions"):
         results_df = get_hljs_predictions(df)
 
     f1 = f1_score(
-        results_df.Language, results_df.Prediction.fillna(""), average="macro"
+        results_df.Language,
+        results_df.Prediction.fillna(""),
+        average="macro",
     )
     print(f"F1 (macro): {f1:.1%}")

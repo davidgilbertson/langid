@@ -219,6 +219,9 @@ if __name__ == "__main__":
     ds = ds.filter(
         lambda row: row.get("Language") not in ["Text", "Less", "SCSS", "Diff"]
     )
+    # Note, it would be logical to relabel all JS and TS as JS/TS (if the goal is syntax highlighting).
+    # Same with CSS, Less and SCSS.
+    # But in practice it makes little difference.
 
     cleaned_ds = ds.map(remove_sub_language)
 
