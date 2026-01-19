@@ -1,8 +1,16 @@
 This repo generates a model that detects the language of a code snippet.
 
-It's meant as a reference, not something you can clone and run to produce a model.
+It's meant as a reference, not something you can clone and run to produce a model (without a bit of effort).
 
 The goal is to do langugage detection (much) better than Highlight.js, using ML/AI, but in a very small size (< 1 MB shipped to browser).
+
+# Demo (easy path if you just want to use this)
+
+The `web/` directory has a simple demo where you can type code and see the language detected.
+
+Run it with `uvicorn web.serve:app --reload`.
+
+You can set a limit on the number of features to use from the model.
 
 # Generating a model
 
@@ -12,14 +20,6 @@ The goal is to do langugage detection (much) better than Highlight.js, using ML/
 2. Extract features from the dataset
 3. Train a model on the features
 4. Analyze the model
-
-# Demo
-
-The `web/` directory has a simple demo where you can type code and see the language detected.
-
-Run it with `uvicorn web.serve:app --reload`, once a `model.json` file has been created.
-
-You can set a limit on the number of features to use from the model, to get an idea for final model size.
 
 # Datasets
 
