@@ -26,10 +26,10 @@ def generate_f1_curve(
     bias = model.intercept_
     languages = model.classes_
 
-    total_tokens = coef.shape[1]
-    ns = np.rint(np.linspace(1, total_tokens, num=steps)).astype(int).tolist()
+    total_features = coef.shape[1]
+    ns = np.rint(np.linspace(1, total_features, num=steps)).astype(int).tolist()
     ns[0] = 1
-    ns[-1] = total_tokens
+    ns[-1] = total_features
 
     results = []
 
@@ -90,7 +90,7 @@ def find_ideal_size(
     coef = model.coef_
     bias = model.intercept_
     languages = model.classes_
-    total_tokens = coef.shape[1]
+    total_features = coef.shape[1]
 
     scores_full = X @ coef.T + bias
     preds_full = np.take(languages, np.argmax(scores_full, axis=1))
@@ -98,13 +98,13 @@ def find_ideal_size(
     f1_target = f1_full - f1_delta
 
     if f1_delta == 0:
-        return IdealSize(n=total_tokens, f1=f1_full)
+        return IdealSize(n=total_features, f1=f1_full)
 
     print(f"Scanning for n features where F1 >= {f1_target:.1%}")
 
-    best_n = total_tokens
+    best_n = total_features
     f1 = 0
-    for n in range(total_tokens, 0, -1):
+    for n in range(total_features, 0, -1):
         n_coef = coef[:, :n]
         scores = X.iloc[:, :n] @ n_coef.T + bias
         preds = np.take(languages, np.argmax(scores, axis=1))

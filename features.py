@@ -8,7 +8,7 @@ from tools import stopwatch
 
 # These are LLM-generated reserved words per language, with a few human additions.
 # They're later filtered to the most 'important' features
-raw_tokens = [
+raw_feature_names = [
     # Symbols
     "#",
     "# ",
@@ -1450,29 +1450,13 @@ raw_tokens = [
 ]
 
 # dedupe and sort
-tokens = sorted(set(raw_tokens))
-
-
-def extract_features_batch(snippets: list[str]) -> dict[str, list[bool]]:
-    features: dict[str, list[bool]] = {token: [] for token in tokens}
-    for snippet in snippets:
-        snippet = snippet.replace("\r\n", "\n").replace("\r", "\n")
-        for token in tokens:
-            features[token].append(token in snippet)
-    return features
-
-
-def generate_features_once(snippet: str) -> list[bool]:
-    snippet = snippet.replace("\r\n", "\n").replace("\r", "\n")
-    return [token in snippet for token in tokens]
+feature_names = sorted(set(raw_feature_names))
 
 
 def generate_features(df: pd.DataFrame | None = None, use_cache=True) -> pd.DataFrame:
     df = get_stack_data() if df is None else df
     lang_counts = df.Language.value_counts().sort_index()
-    fingerprint = (
-        f"rows={len(df)}\ntokens={'\n'.join(tokens)}\n{lang_counts.to_string()}"
-    )
+    fingerprint = f"rows={len(df)}\nfeatures={'\n'.join(feature_names)}\n{lang_counts.to_string()}"
     data_hash = hashlib.sha256(fingerprint.encode("utf-8")).hexdigest()[:12]
     feature_file = Path(f"features/features_{data_hash}.parquet")
 
@@ -1483,9 +1467,11 @@ def generate_features(df: pd.DataFrame | None = None, use_cache=True) -> pd.Data
     with stopwatch("extracting features"):
         features_matrix = []
         for snippet in df.Snippet:
-            features_matrix.append(generate_features_once(snippet))
+            snippet = snippet.replace("\r\n", "\n").replace("\r", "\n")
+            features = [feature_name in snippet for feature_name in feature_names]
+            features_matrix.append(features)
 
-    features_df = pd.DataFrame(features_matrix, columns=tokens)
+    features_df = pd.DataFrame(features_matrix, columns=feature_names)
     features_df["Target"] = df.Language.to_list()
 
     features_df.to_parquet(feature_file, index=False)

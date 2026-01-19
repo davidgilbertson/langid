@@ -46,11 +46,11 @@ def stats_for_rule(
 
 if __name__ == "__main__":
     df = get_stack_data(subset=0.01, snippet_limit=10)
-    test_tokens = ["--", ": #"]
-    for test_token in test_tokens:
-        print(f"\nToken: {test_token!r}")
+    test_feature_names = ["--", ": #"]
+    for test_feature_name in test_feature_names:
+        print(f"\nFeature: {test_feature_name!r}")
         df_results = stats_for_rule(
             df=df,
-            test_func=lambda snippet, token=test_token: token in snippet,
+            test_func=lambda snippet, feature_name=test_feature_name: feature_name in snippet,
             print_results=True,
         )
