@@ -4,10 +4,12 @@
   "description": "This repo generates a function that detects the language of a code snippet.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "serve": "node web/serve.js"
   },
   "dependencies": {
     "apache-arrow": "^21.1.0",
+    "compression": "^1.8.1",
+    "express": "^5.2.1",
     "highlight.js": "^11.11.1"
   },
   "keywords": [],

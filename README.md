@@ -6,9 +6,16 @@ The goal is to do langugage detection (much) better than Highlight.js, using ML/
 
 # Demo (easy path if you just want to use this)
 
-The `web/` directory has a simple demo where you can type code and see the language detected.
+The `web/` directory has a simple demo where you can type code in a browser and see the language detected.
 
-Run it with `uvicorn web.serve:app --reload`.
+To serve this page:
+
+- For Python people:
+  - `uv sync` to install dependencies
+  - run the server with `uvicorn web.serve:app --reload`
+- For Node.js folks:
+  - `npm i` to install dependencies
+  - run the server with `npm run serve`
 
 You can set a limit on the number of features to use from the model.
 

@@ -1,26 +1,13 @@
-let model = null;
-let modelPromise = null;
-
-async function loadModel() {
-  const res = await fetch("model.json", {cache: "no-store"});
-  model = await res.json();
-}
-
-function ensureModelLoaded() {
-  if (!modelPromise) modelPromise = loadModel();
-  return modelPromise;
-}
-
-function predict(snippet) {
+window.langidPredict = (snippet, model) => {
   const languages = model.classes;
 
-  const features = model.features.map((token) => snippet.includes(token));
+  const features = model.features.map((featureName) => snippet.includes(featureName));
 
   const scores = [];
 
   for (let i = 0; i < languages.length; i++) {
-    const row = (model.coef)[i];
-    let score = (model.intercept)[i];
+    const row = model.coef[i];
+    let score = model.intercept[i];
     for (let j = 0; j < features.length; j++) {
       score += features[j] * row[j];
     }
@@ -36,11 +23,4 @@ function predict(snippet) {
   const probs = exps.map((value) => value / sum);
 
   return {language: languages[bestIndex], prob: probs[bestIndex]};
-}
-
-window.langidPredictLanguage = async function langidPredictLanguage(snippet) {
-  await ensureModelLoaded();
-  return predict(snippet);
 };
-
-ensureModelLoaded();

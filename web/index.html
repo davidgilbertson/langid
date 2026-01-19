@@ -45,15 +45,22 @@
   const langEl = document.getElementById("lang");
   const snippetEl = document.getElementById("snippet");
 
-  snippetEl.addEventListener("input", async () => {
-    const snippet = snippetEl.value || "";
-    if (snippet.length <= 5) {
-      langEl.textContent = "—";
-      return;
-    }
-    const prediction = await window.langidPredictLanguage(snippet);
-    langEl.textContent = `${prediction.language} (${(prediction.prob * 100).toFixed(1)}%)`;
-  });
+  fetch("model.json", {cache: "no-store"})
+      .then((res) => res.json())
+      .then((model) => {
+        const handleInput = () => {
+          const snippet = snippetEl.value || "";
+          if (snippet.length <= 5) {
+            langEl.textContent = "—";
+            return;
+          }
+          const prediction = window.langidPredict(snippet, model);
+          langEl.textContent = `${prediction.language} (${(prediction.prob * 100).toFixed(1)}%)`;
+        };
+
+        snippetEl.addEventListener("input", handleInput);
+        handleInput();
+      });
 </script>
 </body>
 </html>
