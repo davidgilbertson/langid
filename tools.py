@@ -1,7 +1,7 @@
 from contextlib import AbstractContextManager
+from copy import copy
 from dataclasses import dataclass, field
 from datetime import timedelta
-from pathlib import Path
 from time import perf_counter
 
 import json
@@ -9,7 +9,17 @@ import gzip
 import numpy as np
 from sklearn.linear_model import LogisticRegression
 
-JSON_DECIMALS_UNSET = object()
+# The number of decimals used when saving the model to JSON
+ROUNDING_DECIMALS: int | None = 1
+
+
+def set_rounding(decimals: int | None) -> None:
+    global ROUNDING_DECIMALS
+    ROUNDING_DECIMALS = decimals
+
+
+def get_rounding() -> int | None:
+    return ROUNDING_DECIMALS
 
 
 @dataclass
@@ -59,63 +69,38 @@ def smart_round(values: np.ndarray, decimals: int) -> list:
     return [[compact_value(value) for value in row] for row in rounded]
 
 
-def model_to_dict(
-    model: LogisticRegression,
-    json_decimals: int | None | object = JSON_DECIMALS_UNSET,
-) -> dict:
-    # Sort features by importance and align coefficients accordingly.
-    importance = np.mean(np.abs(model.coef_), axis=0)
-    feature_order = np.argsort(-importance)
-    ordered_features = [model.feature_names_in_[i] for i in feature_order]
-    ordered_coef = model.coef_[:, feature_order]
+def round_model(model: LogisticRegression) -> LogisticRegression:
+    decimals = get_rounding()
+    if decimals is None:
+        return model
 
-    if json_decimals is JSON_DECIMALS_UNSET:
-        json_decimals = 1
+    rounded_model = copy(model)
+    rounded_model.coef_ = np.array(smart_round(model.coef_, decimals), dtype=float)
+    rounded_model.intercept_ = np.array(
+        smart_round(model.intercept_, decimals),
+        dtype=float,
+    )
 
-    if json_decimals is None:
-        coef = ordered_coef.tolist()
-        intercept = model.intercept_.tolist()
-    else:
-        coef = smart_round(ordered_coef, json_decimals)
-        intercept = smart_round(model.intercept_, json_decimals)
+    return rounded_model
 
+
+def model_to_dict(model: LogisticRegression) -> dict:
     return {
-        "features": ordered_features,
+        "features": model.feature_names_in_.tolist(),
         "classes": model.classes_.tolist(),
-        "coef": coef,
-        "intercept": intercept,
+        "coef": model.coef_.tolist(),
+        "intercept": model.intercept_.tolist(),
     }
 
 
-def trim_model_features(model: dict, n_features: int) -> dict:
-    if not n_features:
-        return model
-    trimmed = dict(model)
-    trimmed["features"] = model["features"][:n_features]
-    trimmed["coef"] = [row[:n_features] for row in model["coef"]]
-    return trimmed
-
-
 def get_gzipped_size_kb(
-    model: Path | str | dict | LogisticRegression,
-    json_decimals: int | None | object = JSON_DECIMALS_UNSET,
+    model: LogisticRegression,
     n_features: int | None = None,
 ) -> float:
-    if isinstance(model, LogisticRegression):
-        model_dict = model_to_dict(model, json_decimals)
-        if n_features is not None:
-            model_dict = trim_model_features(model_dict, n_features)
-        payload = json.dumps(model_dict)
-    elif isinstance(model, dict):
-        model_dict = trim_model_features(model, n_features) if n_features else model
-        payload = json.dumps(model_dict)
-    else:
-        path = Path(model)
-        if n_features is None:
-            payload = path.read_text(encoding="utf-8")
-        else:
-            model_dict = json.loads(path.read_text(encoding="utf-8"))
-            model_dict = trim_model_features(model_dict, n_features)
-            payload = json.dumps(model_dict)
+    model_dict = model_to_dict(round_model(model))
+    if n_features is not None:
+        model_dict["features"] = model_dict["features"][:n_features]
+        model_dict["coef"] = [row[:n_features] for row in model_dict["coef"]]
+    payload = json.dumps(model_dict)
 
     return len(gzip.compress(payload.encode("utf-8"))) / 1024

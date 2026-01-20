@@ -28,9 +28,17 @@ You can set a limit on the number of features to use from the model.
 3. Train a model on the features
 4. Analyze the model
 
+Running `main.py` produces assets in `models/` and `features/`. You can copy a `model_*.json` file into `web/model.json` to serve that as the model in the demo.
+
 # Datasets
 
-(These aren't embedded in the repo.)
+These aren't embedded in the repo.
+
+## The Stack V2
+
+https://huggingface.co/datasets/bigcode/the-stack-v2
+
+Scripts in `data/the_stack` pull the data and split it into n-line snippets, with some minimal cleaning.
 
 ## Smola dataset
 
@@ -52,51 +60,6 @@ https://huggingface.co/datasets/pharaouk/rosetta-code
 I've filtered the Rosetta code dataset to only the languages detected by Medium.com.
 
 Rosetta doesn't have all of them (GraphQL, markdown, yaml) but there's still 29 languages. The problem is that it's all about code, so lacking in scripts, css, html, etc.
-
-## The Stack V2
-
-https://huggingface.co/datasets/bigcode/the-stack-v2
-
-I've filtered this to 100 samples of each of these languages (aligning with medium.com).
-
-```
-[
-  'C',
-  'C++',
-  'C-Sharp',
-  'CSS',
-  'Dart',
-  'Diff',
-  'Go',
-  'GraphQL',
-  'INI',
-  'Java',
-  'JavaScript',
-  'JSON',
-  'Kotlin',
-  'Less',
-  'Lua',
-  'Makefile',
-  'XML',
-  'Markdown',
-  'Objective-C',
-  'Perl',
-  'PHP',
-  'Text',
-  'Python',
-  'R',
-  'Ruby',
-  'Rust',
-  'SCSS',
-  'Shell',
-  'SQL',
-  'Swift',
-  'TypeScript',
-  'Visual_Basic_.NET',
-  'WebAssembly',
-  'YAML'
-]
-```
 
 # Feature extraction
 

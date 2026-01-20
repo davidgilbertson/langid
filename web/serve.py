@@ -8,9 +8,9 @@ from starlette.routing import Route
 from starlette.staticfiles import StaticFiles
 
 # Load the model and maybe shrink it, using top n features
-model = json.loads(Path("model.json").read_text())
+model = json.loads(Path("web/model.json").read_text())
 
-N_FEATURES = 694  # False to use the full model
+N_FEATURES = 400  # False to use the full model
 
 if N_FEATURES:
     model["features"] = model["features"][:N_FEATURES]

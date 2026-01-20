@@ -12,17 +12,14 @@ from sklearn.metrics import f1_score
 from sklearn.model_selection import train_test_split
 
 from features import generate_features
-from tools import model_to_dict, stopwatch
+from tools import model_to_dict, round_model, stopwatch
 
 
 def save_model_json(
     model,
     y: pd.Series,
 ) -> Path:
-    model_dict = model_to_dict(
-        model=model,
-        json_decimals=1,
-    )
+    model_dict = model_to_dict(round_model(model))
 
     # We give this a human-readable name rather than a hash since it must be
     # manually selected. N=Number, F=Features, L=Languages
@@ -34,6 +31,26 @@ def save_model_json(
     return path
 
 
+def reorder_model_and_data(
+    model: LogisticRegression,
+    X: pd.DataFrame,
+    X_trn: pd.DataFrame,
+    X_val: pd.DataFrame,
+) -> tuple[LogisticRegression, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    importance = np.mean(np.abs(model.coef_), axis=0)
+    feature_order = np.argsort(-importance)
+    ordered_features = [model.feature_names_in_[i] for i in feature_order]
+
+    model.coef_ = model.coef_[:, feature_order]
+    model.feature_names_in_ = np.array(ordered_features)
+
+    X = X[ordered_features]
+    X_trn = X_trn[ordered_features]
+    X_val = X_val[ordered_features]
+
+    return model, X, X_trn, X_val
+
+
 # We go crazy with the return value for easier exploration
 class TrainResult(NamedTuple):
     f1: float
@@ -41,8 +58,6 @@ class TrainResult(NamedTuple):
     model_pickle_file: Path
     model_json_file: Path | None
     features: pd.DataFrame
-    X: pd.DataFrame
-    y: pd.Series
     X_trn: pd.DataFrame
     X_val: pd.DataFrame
     y_trn: pd.Series
@@ -99,6 +114,14 @@ def train_model(
             )
             model.fit(X_trn, y_trn)
 
+    # We reorder model weights by importance, and reorder data to match
+    model, X, X_trn, X_val = reorder_model_and_data(
+        model=model,
+        X=X,
+        X_trn=X_trn,
+        X_val=X_val,
+    )
+
     preds = model.predict(X_val)
     probs = model.predict_proba(X_val)
 
@@ -121,8 +144,6 @@ def train_model(
         model_pickle_file=model_pickle_file,
         model_json_file=model_json_file,
         features=features_df,
-        X=X,
-        y=y,
         X_trn=X_trn,
         X_val=X_val,
         y_trn=y_trn,
@@ -142,6 +163,7 @@ if __name__ == "__main__":
         result = train_model(
             df=df,
             use_cache=False,
+            frac=0.1,
         )
 
     # # %% - Inspect the wrong answers

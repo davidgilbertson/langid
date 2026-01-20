@@ -11,7 +11,6 @@
 
     body {
       margin: 24px;
-      max-width: 880px;
       font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
       color: #2f2f2f;
       background: #fafafa;
@@ -20,6 +19,7 @@
 
     textarea {
       width: 100%;
+      max-width: 700px;
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       font-size: 14px;
       padding: 12px;
@@ -31,36 +31,164 @@
     strong {
       font-weight: 600;
     }
+
+    #model-viz {
+      margin-top: 12px;
+      border: 1px solid #dcdcdc;
+      background: #fff;
+      overflow: auto;
+    }
+
+    .model-viz-wrap {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: start;
+    }
+
+    .model-viz-table {
+      border-collapse: collapse;
+      width: max-content;
+      font-size: 12px;
+    }
+
+    .model-viz-table th,
+    .model-viz-table td {
+      border: 1px solid #e0e0e0;
+      padding: 2px 4px;
+      background: #fff;
+    }
+
+    .model-viz-table thead th {
+      background: #f2f2f2;
+      vertical-align: bottom;
+      text-align: center;
+    }
+
+    .model-viz-labels {
+      width: 120px;
+    }
+
+    .model-viz-corner {
+      background: #f2f2f2;
+    }
+
+    .model-viz-weights-shell {
+      overflow-x: auto;
+      overflow-y: hidden;
+      border-left: 1px solid #e0e0e0;
+      border-right: 1px solid #e0e0e0;
+      position: relative;
+    }
+
+    .model-viz-feature-header {
+      text-align: center;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .model-viz-row-label {
+      text-align: left;
+      white-space: nowrap;
+      font-weight: 600;
+      background: #e8eef5;
+    }
+
+    .model-viz-number {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      text-align: right;
+    }
+
+    .model-viz-feature-inactive {
+      color: rgba(0, 0, 0, 0.4);
+    }
+
+    .model-viz-feature-active {
+      color: #0f3d1f;
+    }
+
+    .model-viz-snippet-row th,
+    .model-viz-snippet-row td {
+      border-bottom: 2px solid #c2c2c2;
+    }
+
+    .model-viz-snippet-row td {
+      text-align: center;
+    }
+
+
+    .model-viz-metric-header,
+    .model-viz-metric-cell {
+      width: 70px;
+      min-width: 70px;
+      text-align: right;
+      font-weight: 600;
+      background: #e8eef5;
+    }
+
+    .model-viz-labels th,
+    .model-viz-labels td,
+    .model-viz-metrics th,
+    .model-viz-metrics td {
+      background: #e8eef5;
+    }
+
+    .model-viz-labels {
+      border-right: 2px solid #d5dde7;
+    }
+
+    .model-viz-metrics {
+      border-left: 2px solid #d5dde7;
+    }
+
+    .model-viz-metrics {
+      width: 210px;
+    }
+
+    .model-viz-score {
+      color: #0d2b3f;
+    }
   </style>
 </head>
 <body>
 <h1>LangID</h1>
-<textarea id="snippet" rows="20" placeholder="Enter code here…"></textarea>
+<textarea id="snippet" rows="20" placeholder="Enter code here…" spellcheck="false"></textarea>
 
 <p>
   Detected language: <strong id="lang">—</strong>
 </p>
+
+<section id="model-internals">
+  <h2>Model internals</h2>
+  <div id="model-viz"></div>
+</section>
 <script src="predictLanguage.js"></script>
+<script src="modelViz.js"></script>
 <script>
   const langEl = document.getElementById("lang");
   const snippetEl = document.getElementById("snippet");
+  const modelSectionEl = document.getElementById("model-internals");
 
   fetch("model.json", {cache: "no-store"})
-      .then((res) => res.json())
-      .then((model) => {
-        const handleInput = () => {
-          const snippet = snippetEl.value || "";
-          if (snippet.length <= 5) {
-            langEl.textContent = "—";
-            return;
-          }
-          const prediction = window.langidPredict(snippet, model);
-          langEl.textContent = `${prediction.language} (${(prediction.prob * 100).toFixed(1)}%)`;
-        };
+    .then((res) => res.json())
+    .then((model) => {
+      const handleInput = () => {
+        const snippet = snippetEl.value || "";
+        if (snippet.length <= 5) {
+          langEl.textContent = "—";
+          modelSectionEl.hidden = true;
+          window.langidModelViz("", model);
+          return;
+        }
+        const prediction = window.langidPredict(snippet, model);
+        langEl.textContent = `${prediction.language} (${(prediction.prob * 100).toFixed(1)}%)`;
+        modelSectionEl.hidden = false;
+        window.langidModelViz(snippet, model);
+      };
 
-        snippetEl.addEventListener("input", handleInput);
-        handleInput();
-      });
+      snippetEl.addEventListener("input", handleInput);
+      handleInput();
+    });
 </script>
 </body>
 </html>

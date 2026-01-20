@@ -12,17 +12,14 @@ from sklearn.metrics import f1_score
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import CountVectorizer
 
-from tools import model_to_dict, stopwatch
+from tools import model_to_dict, round_model, set_rounding, stopwatch
 
 
 def save_model_json(
     model,
     y: pd.Series,
 ) -> Path:
-    model_dict = model_to_dict(
-        model=model,
-        json_decimals=1,
-    )
+    model_dict = model_to_dict(round_model(model))
 
     # We give this a human-readable name rather than a hash since it must be
     # manually selected. N=Number, F=Features, L=Languages
@@ -151,7 +148,8 @@ if __name__ == "__main__":
         )
 
     # %% - F1 for given subsets of features
-    model_dict = model_to_dict(result.model, json_decimals=None)
+    set_rounding(None)
+    model_dict = model_to_dict(result.model)
     ordered_features = model_dict["features"]
     ordered_coef = np.asarray(model_dict["coef"])
     intercept = np.asarray(model_dict["intercept"])
