@@ -6,5 +6,7 @@ data/local
 node_modules/
 .env
 features.parquet
-features/
-models/
+features/*
+!features/.gitkeep
+models/*
+!models/.gitkeep
