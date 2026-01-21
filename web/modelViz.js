@@ -25,7 +25,7 @@ function computeScores(snippet, model) {
   return {scores, probs, features};
 }
 
-window.langidModelViz = (snippet, model) => {
+export const langidModelViz = (snippet, model) => {
   const container = document.getElementById("model-viz");
   if (!container) return;
 

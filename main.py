@@ -7,7 +7,7 @@ from analyze_model import (
 )
 from data.utils import get_csn_data
 from train_model import train_model
-from tools import get_gzipped_size_kb
+from tools import get_gzipped_size_kb, save_for_web
 
 
 if __name__ == "__main__":
@@ -48,6 +48,12 @@ if __name__ == "__main__":
 
     # How big will the model be over the network
     size_kb = get_gzipped_size_kb(
+        model=results.model,
+        n_features=n_features,
+    )
+
+    # Save a copy of the model.json to the web demo directory
+    save_for_web(
         model=results.model,
         n_features=n_features,
     )

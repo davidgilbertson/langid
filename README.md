@@ -8,16 +8,14 @@ The goal is to do langugage detection (much) better than Highlight.js, using ML/
 
 The `web/` directory has a simple demo where you can type code in a browser and see the language detected.
 
-To serve this page:
+Live demo: https://langid.dgapps.io
 
-- For Python people:
-  - `uv sync` to install dependencies
-  - run the server with `uvicorn web.serve:app --reload`
-- For Node.js folks:
-  - `npm i` to install dependencies
-  - run the server with `npm run serve`
+Local preview:
 
-You can set a limit on the number of features to use from the model.
+```
+npm i
+npm run dev
+```
 
 # Generating a model
 
@@ -28,7 +26,7 @@ You can set a limit on the number of features to use from the model.
 3. Train a model on the features
 4. Analyze the model
 
-Running `main.py` produces assets in `models/` and `features/`. You can copy a `model_*.json` file into `web/model.json` to serve that as the model in the demo.
+Running `main.py` produces assets in `models/` and `features/` (gitignored). It also outputs a copy of the model to `web/public/model.json` which is used by the demo site.
 
 # Datasets
 

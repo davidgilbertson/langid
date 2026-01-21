@@ -1,5 +1,4 @@
 import {defineConfig} from "vite";
-import {resolve} from "node:path";
 import {cloudflare} from "@cloudflare/vite-plugin";
 
 export default defineConfig({
@@ -9,13 +8,6 @@ export default defineConfig({
   build: {
     outDir: "../dist",
     emptyOutDir: true,
-    rollupOptions: {
-      input: {
-        index: resolve("web/index.html"),
-        predictLanguage: resolve("web/predictLanguage.js"),
-        modelViz: resolve("web/modelViz.js"),
-      },
-    },
   },
   server: {
     port: 8090,

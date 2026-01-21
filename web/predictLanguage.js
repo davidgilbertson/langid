@@ -1,4 +1,4 @@
-window.langidPredict = (snippet, model) => {
+export const langidPredict = (snippet, model) => {
   const languages = model.classes;
 
   const features = model.features.map((featureName) => snippet.includes(featureName));

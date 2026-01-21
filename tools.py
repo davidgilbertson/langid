@@ -2,6 +2,7 @@ from contextlib import AbstractContextManager
 from copy import copy
 from dataclasses import dataclass, field
 from datetime import timedelta
+from pathlib import Path
 from time import perf_counter
 
 import json
@@ -101,6 +102,20 @@ def get_gzipped_size_kb(
     if n_features is not None:
         model_dict["features"] = model_dict["features"][:n_features]
         model_dict["coef"] = [row[:n_features] for row in model_dict["coef"]]
-    payload = json.dumps(model_dict)
+    payload = json.dumps(model_dict, separators=(",", ":"))
 
     return len(gzip.compress(payload.encode("utf-8"))) / 1024
+
+
+def save_for_web(
+    model: LogisticRegression,
+    n_features: int | None = None,
+) -> None:
+    model_dict = model_to_dict(round_model(model))
+    if n_features is not None:
+        model_dict["features"] = model_dict["features"][:n_features]
+        model_dict["coef"] = [row[:n_features] for row in model_dict["coef"]]
+
+    payload = json.dumps(model_dict, separators=(",", ":"))
+    model_path = Path("web/public/model.json")
+    model_path.write_text(payload, encoding="utf-8")

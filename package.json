@@ -4,10 +4,9 @@
   "description": "This repo generates a function that detects the language of a code snippet.",
   "main": "index.js",
   "scripts": {
-    "serve": "node web/serve.js",
-    "build": "node web/build_model.js && vite build",
-    "preview": "node web/build_model.js && vite build && vite preview",
-    "dev": "node web/build_model.js && vite"
+    "build": "vite build",
+    "preview": "vite build && vite preview",
+    "dev": "vite"
   },
   "dependencies": {
     "apache-arrow": "^21.1.0",

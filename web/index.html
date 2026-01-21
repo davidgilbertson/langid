@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>LangID prototype</title>
+  <title>LangID</title>
   <style>
     :root {
       color-scheme: light;
@@ -26,6 +26,12 @@
       border: 1px solid #d0d0d0;
       border-radius: 6px;
       background: #fff;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
     }
 
     strong {
@@ -62,10 +68,6 @@
       background: #f2f2f2;
       vertical-align: bottom;
       text-align: center;
-    }
-
-    .model-viz-labels {
-      width: 120px;
     }
 
     .model-viz-corner {
@@ -116,7 +118,6 @@
       text-align: center;
     }
 
-
     .model-viz-metric-header,
     .model-viz-metric-cell {
       width: 70px;
@@ -134,14 +135,12 @@
     }
 
     .model-viz-labels {
+      width: 120px;
       border-right: 2px solid #d5dde7;
     }
 
     .model-viz-metrics {
       border-left: 2px solid #d5dde7;
-    }
-
-    .model-viz-metrics {
       width: 210px;
     }
 
@@ -152,7 +151,14 @@
 </head>
 <body>
 <h1>LangID</h1>
-<textarea id="snippet" rows="20" placeholder="Enter code here…" spellcheck="false"></textarea>
+<label for="snippet">Type or paste a code snippet</label>
+<textarea id="snippet" rows="16" placeholder="Enter code here…" spellcheck="false">body {
+  margin: 24px;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: #2f2f2f;
+  background: #fafafa;
+  line-height: 1.5;
+}</textarea>
 
 <p>
   Detected language: <strong id="lang">—</strong>
@@ -162,33 +168,6 @@
   <h2>Model internals</h2>
   <div id="model-viz"></div>
 </section>
-<script type="module" src="predictLanguage.js"></script>
-<script type="module" src="modelViz.js"></script>
-<script type="module">
-  const langEl = document.getElementById("lang");
-  const snippetEl = document.getElementById("snippet");
-  const modelSectionEl = document.getElementById("model-internals");
-
-  fetch("model.json", {cache: "no-store"})
-    .then((res) => res.json())
-    .then((model) => {
-      const handleInput = () => {
-        const snippet = snippetEl.value || "";
-        if (snippet.length <= 5) {
-          langEl.textContent = "—";
-          modelSectionEl.hidden = true;
-          window.langidModelViz("", model);
-          return;
-        }
-        const prediction = window.langidPredict(snippet, model);
-        langEl.textContent = `${prediction.language} (${(prediction.prob * 100).toFixed(1)}%)`;
-        modelSectionEl.hidden = false;
-        window.langidModelViz(snippet, model);
-      };
-
-      snippetEl.addEventListener("input", handleInput);
-      handleInput();
-    });
-</script>
+<script type="module" src="index.js"></script>
 </body>
 </html>
