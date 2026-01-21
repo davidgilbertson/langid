@@ -3,19 +3,14 @@ from typing import Callable
 
 import numpy as np
 import pandas as pd
-from data.utils import get_stack_data
 
 
 def stats_for_rule(
-    df: list[dict] | pd.DataFrame,
+    df: pd.DataFrame,
     test_func: Callable,
     print_results=False,
 ):
-    """
-    Dataset must have columns "Snippet" and "Language"
-    """
-    if isinstance(df, pd.DataFrame):
-        df = df.to_dict("records")
+    df = df.to_dict("records")
 
     results = defaultdict(list)
     for row in df:
@@ -45,12 +40,37 @@ def stats_for_rule(
 
 
 if __name__ == "__main__":
-    df = get_stack_data(subset=0.01, snippet_limit=10)
-    test_feature_names = ["--", ": #"]
+    df = pd.read_parquet("E:/Datasets/the_stack_10_line_snippets.parquet")
+    df = df.groupby("Language").sample(frac=0.5)
+
+    test_feature_names = [
+        "std::",
+        "template<",
+        "namespace ",
+        "using namespace",
+        "cout",
+        "cin",
+        "class ",
+        "new ",
+        "delete",
+        "nullptr",
+        "operator",
+        "#include <iostream>",
+        "#include <vector>",
+        "#include <string>",
+        "#include <stdio.h>",
+        "printf(",
+        "scanf(",
+        "malloc(",
+        "free(",
+        "typedef struct",
+        "struct ",
+    ]
     for test_feature_name in test_feature_names:
         print(f"\nFeature: {test_feature_name!r}")
         df_results = stats_for_rule(
             df=df,
-            test_func=lambda snippet, feature_name=test_feature_name: feature_name in snippet,
+            test_func=lambda snippet, feature_name=test_feature_name: feature_name
+            in snippet,
             print_results=True,
         )
