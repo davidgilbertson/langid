@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "vite build",
+    "build:ci": "npm ci && vite build",
     "preview": "vite build && vite preview",
     "dev": "vite"
   },
