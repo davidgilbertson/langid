@@ -53,7 +53,7 @@ window.langidModelViz = (snippet, model) => {
   snippetLabelRow.className = "model-viz-snippet-row";
   const snippetLabel = document.createElement("th");
   snippetLabel.className = "model-viz-row-label";
-  snippetLabel.textContent = "Snippet features";
+  snippetLabel.textContent = "Snippet features:";
   snippetLabelRow.appendChild(snippetLabel);
   labelsBody.appendChild(snippetLabelRow);
 
