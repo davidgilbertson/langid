@@ -4,7 +4,10 @@
   "description": "This repo generates a function that detects the language of a code snippet.",
   "main": "index.js",
   "scripts": {
-    "serve": "node web/serve.js"
+    "serve": "node web/serve.js",
+    "build": "node web/build_model.js && vite build",
+    "preview": "node web/build_model.js && vite build && vite preview",
+    "dev": "node web/build_model.js && vite"
   },
   "dependencies": {
     "apache-arrow": "^21.1.0",
@@ -15,5 +18,10 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "module"
+  "type": "module",
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.21.1",
+    "vite": "^7.3.1",
+    "wrangler": "^4.59.3"
+  }
 }

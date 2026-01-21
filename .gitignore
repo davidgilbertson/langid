@@ -3,7 +3,9 @@
 .vscode/
 __pycache__/
 data/local
+dist/
 node_modules/
+.wrangler
 .env
 features.parquet
 features/*

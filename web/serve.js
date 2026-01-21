@@ -3,7 +3,7 @@ import compression from "compression";
 import {readFileSync} from "node:fs";
 
 const N_FEATURES = 400; // set to null to use the full model
-const model = JSON.parse(readFileSync("web/model.json", "utf8"));
+const model = JSON.parse(readFileSync("web/public/model.json", "utf8"));
 
 if (N_FEATURES) {
   model.features = model.features.slice(0, N_FEATURES);
