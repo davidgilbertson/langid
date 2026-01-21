@@ -7,7 +7,8 @@ dist/
 node_modules/
 .wrangler
 .env
-features.parquet
+
+# Generate assets
 features/*
 !features/.gitkeep
 models/*
