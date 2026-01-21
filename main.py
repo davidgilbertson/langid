@@ -1,11 +1,11 @@
 import pandas as pd
-import plotly.express as px
 
 from analyze_model import (
     generate_f1_curve,
     find_ideal_size,
     generate_rounding_curve,
 )
+from data.utils import get_csn_data
 from train_model import train_model
 from tools import get_gzipped_size_kb
 
@@ -15,11 +15,12 @@ if __name__ == "__main__":
     # df = pd.read_parquet("E:/Datasets/the_stack_20_line_snippets.parquet")
     # df = pd.read_parquet("E:/Datasets/the_stack_whole_files.parquet")
     # df = df[df.Language.isin(["Go", "Java", "JavaScript", "PHP", "Python", "Ruby"])]
+    # df = get_csn_data()["valid"].to_pandas()
 
     results = train_model(
         df,
         # frac=0.1,
-        # use_cache=True,
+        # use_cache=False,
     )
 
     # See how changes in number of features affects F1
@@ -34,6 +35,7 @@ if __name__ == "__main__":
         model=results.model,
         X=results.X_val,
         y=results.y_val,
+        max_decimals=10,
     )
 
     # How many features are needed to achieve (F1 - 1%)?
@@ -41,7 +43,7 @@ if __name__ == "__main__":
         model=results.model,
         X=results.X_val,
         y=results.y_val,
-        f1_delta=0.01,
+        f1_delta=0.001,
     )
 
     # How big will the model be over the network
@@ -51,16 +53,3 @@ if __name__ == "__main__":
     )
 
     print(f"F1={f1:.1%} with {n_features} features. {size_kb:,.1f} KB (gzipped).")
-
-    # %%
-    fig = px.line(
-        f1_df,
-        x="SizeKb",
-        y="F1",
-        title="F1 vs model size",
-        labels={"SizeKb": "Size (KB)", "F1": "F1"},
-    )
-    fig.update_xaxes(range=[0, 22])
-    fig.update_xaxes(ticklabelstandoff=10)
-    fig.update_yaxes(range=[0, 1], tickformat=".0%", ticklabelstandoff=2)
-    fig.write_html("f1_vs_size_chart.html")
