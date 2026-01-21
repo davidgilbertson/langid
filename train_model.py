@@ -64,6 +64,7 @@ class TrainResult(NamedTuple):
     y_val: pd.Series
     preds: np.ndarray
     probs: np.ndarray
+    wrong_df: pd.DataFrame
 
 
 def train_model(
@@ -75,6 +76,7 @@ def train_model(
         # Subset of rows
         df = df.groupby("Language").sample(frac=frac, random_state=0)
 
+    df = df.reset_index(drop=True)
     features_df = generate_features(df, use_cache=use_cache)
 
     X = features_df.drop(columns=["Target"])
@@ -138,6 +140,17 @@ def train_model(
         y=y,
     )
 
+    # Collect just the incorrect predictions
+    wrong_df = pd.DataFrame(
+        dict(
+            Snippet=df.Snippet.loc[y_val.index],
+            Language=y_val.to_list(),
+            Pred=preds,
+            Prob=np.max(probs, axis=1),
+        )
+    )
+    wrong_df = wrong_df[wrong_df.Language.ne(wrong_df.Pred)]
+
     return TrainResult(
         f1=f1,
         model=model,
@@ -150,11 +163,11 @@ def train_model(
         y_val=y_val,
         preds=preds,
         probs=probs,
+        wrong_df=wrong_df,
     )
 
 
 if __name__ == "__main__":
-    # result = train_model(frac=0.1, save=False)
     # df = pd.read_parquet("E:/Datasets/the_stack_whole_files.parquet")
     # df = pd.read_parquet("E:/Datasets/the_stack_20_line_snippets.parquet")
     df = pd.read_parquet("E:/Datasets/the_stack_10_line_snippets.parquet")
@@ -162,31 +175,6 @@ if __name__ == "__main__":
     with stopwatch("train_model"):
         result = train_model(
             df=df,
-            use_cache=False,
             frac=0.1,
+            # use_cache=False,
         )
-
-    # # %% - Inspect the wrong answers
-    # from data.utils import get_stack_data
-    # model, features, X, y, X_trn, X_val, y_trn, y_val, preds, probs = result
-    # result_df = y_val.to_frame()
-    # result_df["Pred"] = preds
-    # result_df["Confidence"] = np.max(probs, axis=1)
-    # # result_df["Snippet"] = snippets
-    # wrong_df = (
-    #     result_df[y_val.ne(preds)].copy().sort_values("Confidence", ascending=False)
-    # )
-    #
-    # snippets = get_stack_data(snippet_limit=10).Snippet
-    # # Below is dodgy, but snippets and features came from the same place so share an index.
-    # wrong_df["Snippet"] = snippets.loc[wrong_df.index]
-    #
-    # wrong_counts_df = (
-    #     wrong_df.groupby(["Target", "Pred"])
-    #     .size()
-    #     .reset_index(name="Errors")
-    #     .sort_values("Errors", ascending=False)
-    # )
-
-    # print("Most common error types")
-    # print(wrong_counts_df.head(10))
