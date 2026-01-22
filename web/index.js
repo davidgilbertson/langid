@@ -17,9 +17,7 @@ fetch("model.json", {cache: "no-store"})
           modelViz("", model);
           return;
         }
-        const start = performance.now();
         const prediction = predict(snippet, model);
-        console.log(performance.now() - start);
         langEl.textContent = `${prediction.language} (${(prediction.prob * 100).toFixed(1)}%)`;
         langEl.classList.remove("lang-pill--empty");
         modelSectionEl.hidden = false;
