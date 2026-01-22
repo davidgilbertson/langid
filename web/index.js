@@ -12,12 +12,14 @@ fetch("model.json", {cache: "no-store"})
       const snippet = snippetEl.value || "";
       if (snippet.length <= 5) {
         langEl.textContent = "—";
+        langEl.classList.add("lang-pill--empty");
         modelSectionEl.hidden = true;
         langidModelViz("", model);
         return;
       }
       const prediction = langidPredict(snippet, model);
       langEl.textContent = `${prediction.language} (${(prediction.prob * 100).toFixed(1)}%)`;
+      langEl.classList.remove("lang-pill--empty");
       modelSectionEl.hidden = false;
       langidModelViz(snippet, model);
     };
