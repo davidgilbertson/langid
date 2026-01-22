@@ -1,4 +1,4 @@
-export const langidPredict = (snippet, model) => {
+const predict = (snippet, model) => {
   const languages = model.classes;
 
   const features = model.features.map((featureName) => snippet.includes(featureName));
@@ -24,3 +24,5 @@ export const langidPredict = (snippet, model) => {
 
   return {language: languages[bestIndex], prob: probs[bestIndex]};
 };
+
+export default predict;

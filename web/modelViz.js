@@ -3,9 +3,8 @@ function formatNumber(value) {
   return value.toFixed(1);
 }
 
-function computeScores(snippet, model) {
+function computeScores(snippet, model, features) {
   const languages = model.classes;
-  const features = model.features.map((token) => snippet.includes(token));
   const scores = [];
 
   for (let i = 0; i < languages.length; i++) {
@@ -25,14 +24,30 @@ function computeScores(snippet, model) {
   return {scores, probs, features};
 }
 
-export const langidModelViz = (snippet, model) => {
+let lastFeatures = null;
+
+const modelViz = (snippet, model) => {
   const container = document.getElementById("model-viz");
   if (!container) return;
+
+  const features = model.features.map((token) => snippet.includes(token));
+
+  if (lastFeatures && lastFeatures.length === features.length) {
+    let isSame = true;
+    for (let i = 0; i < features.length; i++) {
+      if (features[i] !== lastFeatures[i]) {
+        isSame = false;
+        break;
+      }
+    }
+    if (isSame) return;
+  }
+  lastFeatures = features;
 
   container.innerHTML = "";
 
   const languages = model.classes;
-  const {scores, probs, features} = computeScores(snippet || "", model);
+  const {scores, probs} = computeScores(snippet || "", model, features);
 
   const wrapper = document.createElement("div");
   wrapper.className = "model-viz-wrap";
@@ -186,3 +201,5 @@ export const langidModelViz = (snippet, model) => {
   wrapper.appendChild(metricsTable);
   container.appendChild(wrapper);
 };
+
+export default modelViz;
