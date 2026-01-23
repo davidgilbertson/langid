@@ -332,11 +332,24 @@ Model comparisons on 10% subset:
 
 # Experiment 12
 
+Assets:
+
+- (none recorded)
+
+Metrics:
+
+- Before: 94.4% on 681 features (10% subset)
+- After: 95.3% on 697 features (10% subset)
+- Full dataset: 96.4%
+- With `get_stack_data(snippet_limit=10, subset=0.01)`:
+  - F1 is 87.3% (this approach)
+  - F1 is 33.9% with Highlight.js
+
+## Features
+
 Spaces after some keywords. E.g. `"fun"` matches `"func"` and `"function"`, so `"fun "` gives a stronger signal.
 
-Before: 94.4% on 681 features and 10% subset
-After: 95.3% on 697 features and 10% subset
-And 96.4% on the full dataset
+Feature selection experiments:
 
 Even after sorting features by 'importance' (coef size), picking only 5 of these (2, 7, 15, 127, 181) is 97.9% accuracy, while 681 of them get to 99.1%
 
@@ -344,12 +357,15 @@ Tried using permutation to calculate importance of features. The top 10 features
 
 Tried greedy (selecting the best next feature from top 200). Top 10 features gets to 94.2%, top 20 gets to 98.7%. So much better than cord 'importance', but less good that the hand-picked set.
 
-Alas all this was measuring accuracy, but the dataset, after breaking up into 10-line snippets, is 83% WebAssembly, so accuracy is not valid. From now on will report F1.
+Alas all this was measuring accuracy (like an idiot), but the dataset, after breaking up into 10-line snippets, is 83% WebAssembly, so accuracy is not valid. From now on will report F1.
 
-With `get_stack_data(snippet_limit=10, subset=0.01)`
+## Model
 
-- F1 is 87.3% (my way)
-- F1 is 33.9% with Highlight.js
+Same pipeline as Experiment 11 (model unchanged).
+
+## Outcome
+
+Established F1 as the primary metric and added tooling to explore top-n feature curves and minimal-feature thresholds.
 
 OK, better train and perf tuning setup, works like this:
 
@@ -360,18 +376,52 @@ OK, better train and perf tuning setup, works like this:
 
 # Experiment 13
 
-Testing on just 6 languages to align with https://huggingface.co/huggingface/CodeBERTa-language-id
-`["Go", "Java", "JavaScript", "PHP", "Python", "Ruby"]`
-And full snippets.
-This gets 99% F1 and only needs 74 features, so is < 2kb
+Assets:
+
+- (none recorded)
+
+Metrics:
+
+- F1: 99%
+- Features: 74
+- Size: < 2 KB
+
+## Features
+
+Testing on just 6 languages to align with https://huggingface.co/huggingface/CodeBERTa-language-id:
+`["Go", "Java", "JavaScript", "PHP", "Python", "Ruby"]`.
+Used full snippets.
+
+## Model
+
+Same pipeline as Experiment 12 (model unchanged).
+
+## Outcome
+
+High F1 with a tiny feature set when restricted to 6 languages.
 
 # Experiment 14
 
-Cleaned The Stack dataset (see `create_stack_snippets.py`). Split into n-line snippets, then deleted junk (~10k out of ~430k items).
-Makes not much difference:
+Assets:
 
-- With 10-line snippets (420k rows): F1 is 88.6% with 456 features
-- With 20-line snippets (210k rows): F1 is 93.9% with 398 features
+- (none recorded)
+
+Metrics:
+
+- 10-line snippets (420k rows): F1 88.6% with 456 features
+- 20-line snippets (210k rows): F1 93.9% with 398 features
+
+## Features
+
+Cleaned The Stack dataset (see `create_stack_snippets.py`). Split into n-line snippets, then deleted junk (~10k out of ~430k items).
+
+## Model
+
+Same pipeline as Experiment 12 (model unchanged).
+
+## Outcome
+
+Cleaning and longer snippets improved F1, but not dramatically.
 
 # Experiment 15 – Bag of words
 
@@ -388,4 +438,16 @@ On the 10-line snippets dataset (150k rows):
 | `generate_features` | 1 min   | 87.3% | 20 KB      |
 | `CountVectorizer`   | 15 min  | 92.4% | 157,000 KB |
 
-This generates 477,842 features, hence the slowness. We can still sort and use just a subset of these. Taking just the first 5,000 features gets an F1 of 87.5%. 10,000 features gets 89.7% (diminishing returns). In other words, this method can get better results, but needs 10x more features to match the results of `generate_features`, and much more to get further ahead.  
+This generates 477,842 features, hence the slowness. We can still sort and use just a subset of these. Taking just the first 5,000 features gets an F1 of 87.5%. 10,000 features gets 89.7% (diminishing returns). In other words, this method can get better results, but needs 10x more features to match the results of `generate_features`, and much more to get further ahead.
+
+## Features
+
+Replace the `generate_features` logic with a `CountVectorizer` bag-of-words.
+
+## Model
+
+Same pipeline as Experiment 12 (model unchanged).
+
+## Outcome
+
+Bag-of-words improves F1 but explodes feature count and model size.
