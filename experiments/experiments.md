@@ -417,7 +417,7 @@ Cleaned The Stack dataset (see `create_stack_snippets.py`). Split into n-line sn
 
 ## Model
 
-Same pipeline as Experiment 12 (model unchanged).
+Same pipeline as Experiment 12.
 
 ## Outcome
 
@@ -446,8 +446,31 @@ Replace the `generate_features` logic with a `CountVectorizer` bag-of-words.
 
 ## Model
 
-Same pipeline as Experiment 12 (model unchanged).
+Same pipeline as Experiment 12.
 
 ## Outcome
 
 Bag-of-words improves F1 but explodes feature count and model size.
+
+# Experiment 16
+
+Assets:
+
+- (none recorded)
+
+## Features
+
+The below are run on 10% of the 10-line snippets
+
+- Baseline: F1=81.9% (more runs, randomised: 82.5, 81.5, 82.0, 82.1)
+- Blindly adding a space after each feature: 77.3%
+- Adding spaces after select (17) keywords: 82.4%
+- Adding spaces after ~80 more keywords: 82.1%
+
+So changes to the feature set don't help significantly.
+
+However, I've rearranged the features into individual files which the coding agent finds easier to maintain.
+
+## Model
+
+Same pipeline as Experiment 12.

@@ -1,0 +1,21 @@
+# Auto-generated from features.py sections.
+FEATURE_NAMES = [
+    'directive',
+    'enum ',
+    'extend',
+    'false',
+    'fragment',
+    'implements',
+    'input',
+    'interface ',
+    'mutation',
+    'null',
+    'on',
+    'query',
+    'scalar',
+    'schema',
+    'subscription',
+    'true',
+    'type',
+    'union',
+]
