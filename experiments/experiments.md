@@ -9,8 +9,8 @@ Experiments 1-4 used the smola/language-dataset sqlite snapshot.
 
 Assets:
 
-- `experiments/features_ex1.py`
-- `experiments/train_model_ex1.py`
+- `experiments/ex01_features.py`
+- `experiments/ex01_train_model.py`
 
 Metrics:
 
@@ -31,8 +31,8 @@ Logistic regression
 
 Assets:
 
-- `experiments/features_ex2.py`
-- `experiments/train_model_ex2.py`
+- `experiments/ex02_features.py`
+- `experiments/ex02_train_model.py`
 
 Metrics:
 
@@ -77,8 +77,8 @@ Top confusions (Actual -> Predicted):
 
 Assets:
 
-- `experiments/features_ex3.py`
-- `experiments/train_model_ex3.py`
+- `experiments/ex03_features.py`
+- `experiments/ex03_train_model.py`
 
 Metrics:
 
@@ -125,8 +125,8 @@ Top confusions (Actual -> Predicted):
 
 Assets:
 
-- `experiments/features_ex3.py`
-- `experiments/train_model_ex4.py`
+- `experiments/ex03_features.py`
+- `experiments/ex04_train_model.py`
 
 Metrics:
 
@@ -150,8 +150,8 @@ Expanded model sweep: LogisticRegression, BernoulliNB, MultinomialNB, LinearSVC,
 
 Assets:
 
-- `experiments/features_ex5.py`
-- `experiments/train_model_ex5.py`
+- `experiments/ex05_features.py`
+- `experiments/ex05_train_model.py`
 
 Metrics:
 
@@ -173,8 +173,8 @@ LogisticRegression
 
 Assets:
 
-- `experiments/features_ex6.py`
-- `experiments/train_model_ex6.py`
+- `experiments/ex06_features.py`
+- `experiments/ex06_train_model.py`
 
 Metrics:
 
@@ -200,7 +200,7 @@ LogisticRegression
 
 Assets:
 
-- `experiments/train_model_ex7.py`
+- `experiments/ex07_train_model.py`
 
 Metrics:
 
@@ -220,7 +220,7 @@ Centroid classifier: mean feature vector per language, predict by nearest centro
 
 Assets:
 
-- `experiments/features_ex8.py`
+- `experiments/ex08_features.py`
 
 Metrics:
 
@@ -243,8 +243,8 @@ Dominated by rare, corpus-specific tokens (e.g., artifacts from a single file) r
 
 Assets:
 
-- `experiments/features_ex9.py`
-- `experiments/train_model_ex9.py`
+- `experiments/ex09_features.py`
+- `experiments/ex09_train_model.py`
 
 Metrics:
 
@@ -263,8 +263,8 @@ LogisticRegression with StandardScaler.
 
 Assets:
 
-- `experiments/features_ex10.py`
-- `experiments/train_model_ex10.py`
+- `experiments/ex10_features.py`
+- `experiments/ex10_train_model.py`
 
 Metrics:
 
@@ -287,8 +287,8 @@ LogisticRegression with StandardScaler.
 
 Assets:
 
-- `experiments/features_ex11.py`
-- `experiments/train_model_ex11.py`
+- `experiments/ex11_features.py`
+- `experiments/ex11_train_model.py`
 
 Metrics:
 
@@ -427,7 +427,7 @@ Cleaning and longer snippets improved F1, but not dramatically.
 
 Assets:
 
-- `experiments/train_model_ex15.py`
+- `experiments/ex15_train_model.py`
 
 Replace the `generate_features` logic with a `CountVectorizer`.
 
@@ -474,3 +474,17 @@ However, I've rearranged the features into individual files which the coding age
 ## Model
 
 Same pipeline as Experiment 12.
+
+# Experiment 17 – Network representations
+
+Is sending the model values as raw bytes smaller than JSON, once decoding code and gzipping is allowed for?
+
+Assets:
+
+- `experiments/ex17.py`
+
+Findings (subset):
+
+- Symmetric int8 is ~75% of the gzipped JSON size (11.7 KB / 15.7 KB) with no meaningful F1 change.
+- Ungzipped sizes diverge much more (~80 KB JSON vs ~23 KB int8).
+

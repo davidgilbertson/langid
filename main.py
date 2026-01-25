@@ -43,7 +43,6 @@ if __name__ == "__main__":
         model=results.model,
         X=results.X_val,
         y=results.y_val,
-        f1_delta=0.001,
     )
 
     # How big will the model be over the network

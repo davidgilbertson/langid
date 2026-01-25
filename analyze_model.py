@@ -18,6 +18,22 @@ def score(y_true: ArrayLike, y_pred: ArrayLike) -> float:
     return f1_score(y_true, y_pred, average="macro")
 
 
+def score_model(
+    model: LogisticRegression,
+    X: pd.DataFrame,
+    y: pd.Series,
+    coef: ArrayLike | None = None,
+    bias: ArrayLike | None = None,
+    languages: ArrayLike | None = None,
+) -> float:
+    coef = coef if coef is not None else model.coef_
+    bias = bias if bias is not None else model.intercept_
+    languages = languages if languages is not None else model.classes_
+    scores = X @ coef.T + bias
+    preds = np.take(languages, np.argmax(scores, axis=1))
+    return score(y, preds)
+
+
 def generate_f1_curve(
     model: LogisticRegression,
     X: pd.DataFrame,
@@ -30,7 +46,7 @@ def generate_f1_curve(
     rounded_model = round_model(model)
     coef = rounded_model.coef_
     bias = rounded_model.intercept_
-    languages = model.classes_
+    languages = rounded_model.classes_
 
     total_features = coef.shape[1]
     ns = np.rint(np.linspace(1, total_features, num=steps)).astype(int).tolist()
@@ -41,9 +57,14 @@ def generate_f1_curve(
 
     for n in ns:
         n_coef = coef[:, :n]
-        scores = X.iloc[:, :n] @ n_coef.T + bias
-        preds = np.take(languages, np.argmax(scores, axis=1))
-        f1 = score(y, preds)
+        f1 = score_model(
+            rounded_model,
+            X.iloc[:, :n],
+            y,
+            coef=n_coef,
+            bias=bias,
+            languages=languages,
+        )
         size_kb = get_gzipped_size_kb(rounded_model, n_features=n)
         results.append(dict(N=n, F1=f1, SizeKb=size_kb))
         print(f"F1 @ {n=}: {f1:.2%}", end="\r")
@@ -63,14 +84,19 @@ def generate_rounding_curve(
 
     results = []
     original_rounding = get_rounding()
-    for places in range(max_decimals + 1):
+    for places in list(range(max_decimals + 1)) + [None]:
         set_rounding(places)
         rounded_model = round_model(model)
         coef = rounded_model.coef_
         bias = rounded_model.intercept_
-        scores = X @ coef.T + bias
-        preds = np.take(languages, np.argmax(scores, axis=1))
-        f1 = score(y, preds)
+        f1 = score_model(
+            rounded_model,
+            X,
+            y,
+            coef=coef,
+            bias=bias,
+            languages=languages,
+        )
 
         size_kb = get_gzipped_size_kb(rounded_model)
         results.append(dict(Decimals=places, F1=f1, SizeKb=size_kb))
@@ -99,12 +125,17 @@ def find_ideal_size(
     rounded_model = round_model(model)
     coef = rounded_model.coef_
     bias = rounded_model.intercept_
-    languages = model.classes_
+    languages = rounded_model.classes_
     total_features = coef.shape[1]
 
-    scores_full = X @ coef.T + bias
-    preds_full = np.take(languages, np.argmax(scores_full, axis=1))
-    f1_full = score(y, preds_full)
+    f1_full = score_model(
+        rounded_model,
+        X,
+        y,
+        coef=coef,
+        bias=bias,
+        languages=languages,
+    )
     f1_target = f1_full - f1_delta
 
     if f1_delta == 0:
@@ -122,9 +153,14 @@ def find_ideal_size(
                 continue
             break
         n_coef = coef[:, :n]
-        scores = X.iloc[:, :n] @ n_coef.T + bias
-        preds = np.take(languages, np.argmax(scores, axis=1))
-        f1 = score(y, preds)
+        f1 = score_model(
+            rounded_model,
+            X.iloc[:, :n],
+            y,
+            coef=n_coef,
+            bias=bias,
+            languages=languages,
+        )
         print(f"F1 @ {n=}: {f1:.1%}", end="\r")
         if f1 >= f1_target:
             best_n = n
