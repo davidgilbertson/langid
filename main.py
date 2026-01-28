@@ -28,14 +28,7 @@ if __name__ == "__main__":
         model=results.model,
         X=results.X_val,
         y=results.y_val,
-    )
-
-    # See how different rounding values affects F1 and Size
-    rounding_df = generate_rounding_curve(
-        model=results.model,
-        X=results.X_val,
-        y=results.y_val,
-        max_decimals=10,
+        rounding=None,
     )
 
     # How many features are needed to achieve (F1 - 1%)?
@@ -43,6 +36,15 @@ if __name__ == "__main__":
         model=results.model,
         X=results.X_val,
         y=results.y_val,
+    )
+
+    # See how different rounding values affects F1 and Size
+    rounding_df = generate_rounding_curve(
+        model=results.model,
+        X=results.X_val,
+        y=results.y_val,
+        # max_decimals=10,
+        n_features=n_features,
     )
 
     # How big will the model be over the network

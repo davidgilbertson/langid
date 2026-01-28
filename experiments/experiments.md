@@ -483,8 +483,19 @@ Assets:
 
 - `experiments/ex17.py`
 
+Results (subset):
+
+| Representation            | Raw (KB) | Gzip (KB) | F1 (%) |
+|---------------------------|---------:|----------:|-------:|
+| JSON                      |     58.4 |      14.4 |   86.2 |
+| JSON (Brotli)             |     58.4 |      12.5 |   86.2 |
+| JSON (Zstandard)          |     58.4 |      16.2 |   86.2 |
+| Raw bytes (int8)          |     15.4 |      10.1 |   86.2 |
+| Raw bytes (int8, Brotli)  |     15.4 |       9.3 |   86.2 |
+| Raw bytes (int8, Zstandard) |   15.4 |       9.8 |   86.2 |
+
 Findings (subset):
 
-- Symmetric int8 is ~75% of the gzipped JSON size (11.7 KB / 15.7 KB) with no meaningful F1 change.
+- Symmetric int8 is ~75% of the gzipped JSON size (10.1 KB / 14.4 KB) with no meaningful F1 change.
+- Brotli compression on the int8/raw byte version is 9.3KB
 - Ungzipped sizes diverge much more (~80 KB JSON vs ~23 KB int8).
-

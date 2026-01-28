@@ -2,11 +2,18 @@ import gzip
 import json
 import struct
 
+import brotlicffi
 import numpy as np
 import pandas as pd
+import zstandard as zstd
 from sklearn.metrics import f1_score
 
-from tools import round_model, smart_round
+from tools import (
+    model_to_dict,
+    round_model,
+    smart_round,
+    shrink_model,
+)
 from train_model import train_model
 
 # Binary formats are little-endian:
@@ -18,7 +25,18 @@ from train_model import train_model
 
 
 def gzip_size(data: bytes) -> int:
-    return len(gzip.compress(data, compresslevel=9))
+    return len(gzip.compress(data))
+
+
+def brotli_size(data: bytes) -> int:
+    return len(brotlicffi.compress(data))
+
+
+_ZSTD = zstd.ZstdCompressor()
+
+
+def zstd_size(data: bytes) -> int:
+    return len(_ZSTD.compress(data))
 
 
 def json_payload(
@@ -59,9 +77,7 @@ def tsv_payload_int10(
 ) -> bytes:
     coef_rows = smart_round(coef, decimals)
     intercept_row = smart_round(intercept, decimals)
-    lines = [
-        "\t".join(str(int(round(value * 10))) for value in intercept_row)
-    ]
+    lines = ["\t".join(str(int(round(value * 10))) for value in intercept_row)]
     lines.extend(
         "\t".join(str(int(round(value * 10))) for value in row) for row in coef_rows
     )
@@ -161,10 +177,7 @@ def decode_tsv(payload: bytes) -> tuple[np.ndarray, np.ndarray]:
     text = payload.decode("utf-8")
     rows = [row.split("\t") for row in text.splitlines() if row]
     intercept = np.array([float(value) for value in rows[0]], dtype=np.float32)
-    coef_rows = [
-        [float(value) for value in row]
-        for row in rows[1:]
-    ]
+    coef_rows = [[float(value) for value in row] for row in rows[1:]]
     coef = np.array(coef_rows, dtype=np.float32)
     return coef, intercept
 
@@ -173,10 +186,7 @@ def decode_tsv_int10(payload: bytes) -> tuple[np.ndarray, np.ndarray]:
     text = payload.decode("utf-8")
     rows = [row.split("\t") for row in text.splitlines() if row]
     intercept = np.array([int(value) for value in rows[0]], dtype=np.float32) / 10.0
-    coef_rows = [
-        [int(value) for value in row]
-        for row in rows[1:]
-    ]
+    coef_rows = [[int(value) for value in row] for row in rows[1:]]
     coef = np.array(coef_rows, dtype=np.float32) / 10.0
     return coef, intercept
 
@@ -195,17 +205,14 @@ def score_model(
     return f1_score(y, preds, average="macro")
 
 
-def format_rows(rows: list[tuple[str, int, int, float, str]]) -> str:
+def format_rows(rows: list[tuple[str, int, int, float]]) -> str:
     name_width = max(len(row[0]) for row in rows)
-    lines = [
-        f"{'Format'.ljust(name_width)}  Raw (KB)  Gzip (KB)  Gzip %    F1    Notes"
-    ]
-    for name, raw, gz, f1, notes in rows:
+    lines = [f"{'Format'.ljust(name_width)}  Raw (KB)  Gzip (KB)    F1"]
+    for name, raw, gz, f1 in rows:
         raw_kb = raw / 1024
         gz_kb = gz / 1024
-        pct = (gz / raw) * 100 if raw else 0
         lines.append(
-            f"{name.ljust(name_width)}  {raw_kb:8.2f}  {gz_kb:8.2f}  {pct:6.1f}%  {f1:5.2%}  {notes}"
+            f"{name.ljust(name_width)}  {raw_kb:8.2f}  {gz_kb:8.2f}  {f1:5.2%}"
         )
     return "\n".join(lines)
 
@@ -216,54 +223,99 @@ if __name__ == "__main__":
     model = round_model(results.model)
     X = results.X_val
     y = results.y_val
+
+    # Reduce features
+    n = 400
+    model = shrink_model(model, n)
+    X = X.iloc[:, :n]
+
     coef = model.coef_.copy()
     intercept = model.intercept_.copy()
     n_classes, n_features = coef.shape
 
     baseline_f1 = score_model(model, X, y, coef=coef, intercept=intercept)
-    rows: list[tuple[str, int, int, float, str]] = []
+    rows: list[tuple[str, int, int, float]] = []
 
-    payload = json_payload(coef, intercept, flat=False)
+    model_dict = model_to_dict(model)
+    payload = json.dumps(model_dict, separators=(",", ":")).encode("utf-8")
 
     decoded_coef, decoded_intercept = decode_json(payload)
     f1 = score_model(model, X, y, coef=decoded_coef, intercept=decoded_intercept)
-    rows.append(("json_nested_f32", len(payload), gzip_size(payload), f1, ""))
+    rows.append(("json", len(payload), gzip_size(payload), f1))
+    rows.append(("json_br", len(payload), brotli_size(payload), f1))
+    rows.append(("json_zst", len(payload), zstd_size(payload), f1))
 
-    payload = json_payload(coef, intercept, flat=True)
-    decoded_coef, decoded_intercept = decode_json(payload)
+    meta_payload = json.dumps(
+        {
+            "features": model_dict["features"],
+            "classes": model_dict["classes"],
+            "coef_shape": [n_classes, n_features],
+            "intercept_shape": [n_classes],
+        },
+        separators=(",", ":"),
+    ).encode("utf-8")
+    param_payload = pack_int8_symmetric(coef, intercept)
+    decoded_coef, decoded_intercept = decode_int8(param_payload)
     f1 = score_model(model, X, y, coef=decoded_coef, intercept=decoded_intercept)
-    rows.append(("json_flat_f32", len(payload), gzip_size(payload), f1, ""))
+    rows.append(
+        (
+            "bin_int8_sym",
+            len(meta_payload) + len(param_payload),
+            gzip_size(meta_payload) + gzip_size(param_payload),
+            f1,
+        )
+    )
+    rows.append(
+        (
+            "bin_int8_sym_br",
+            len(meta_payload) + len(param_payload),
+            brotli_size(meta_payload) + brotli_size(param_payload),
+            f1,
+        )
+    )
+    rows.append(
+        (
+            "bin_int8_sym_zst",
+            len(meta_payload) + len(param_payload),
+            zstd_size(meta_payload) + zstd_size(param_payload),
+            f1,
+        )
+    )
 
-    payload = pack_float32(coef, intercept)
-    decoded_coef, decoded_intercept = decode_f32(payload)
-    f1 = score_model(model, X, y, coef=decoded_coef, intercept=decoded_intercept)
-    rows.append(("bin_f32", len(payload), gzip_size(payload), f1, ""))
-
-    payload = pack_float16(coef, intercept)
-    decoded_coef, decoded_intercept = decode_f16(payload)
-    f1 = score_model(model, X, y, coef=decoded_coef, intercept=decoded_intercept)
-    rows.append(("bin_f16", len(payload), gzip_size(payload), f1, ""))
-
-    payload = pack_int8_symmetric(coef, intercept)
-    decoded_coef, decoded_intercept = decode_int8(payload)
-    f1 = score_model(model, X, y, coef=decoded_coef, intercept=decoded_intercept)
-    rows.append(("bin_int8_sym", len(payload), gzip_size(payload), f1, ""))
-
-    payload, clipped = pack_int8_fixed_scale(coef, intercept, scale=0.1)
-    decoded_coef, decoded_intercept = decode_int8(payload)
-    f1 = score_model(model, X, y, coef=decoded_coef, intercept=decoded_intercept)
-    notes = "clipped" if clipped else "lossless"
-    rows.append(("bin_int8_0p1", len(payload), gzip_size(payload), f1, notes))
-
-    payload = tsv_payload(coef, intercept)
-    decoded_coef, decoded_intercept = decode_tsv(payload)
-    f1 = score_model(model, X, y, coef=decoded_coef, intercept=decoded_intercept)
-    rows.append(("tsv_f32_1dp", len(payload), gzip_size(payload), f1, ""))
-
-    payload = tsv_payload_int10(coef, intercept)
-    decoded_coef, decoded_intercept = decode_tsv_int10(payload)
-    f1 = score_model(model, X, y, coef=decoded_coef, intercept=decoded_intercept)
-    rows.append(("tsv_int10", len(payload), gzip_size(payload), f1, "lossless"))
+    # payload = json_payload(coef, intercept, flat=False)
+    # decoded_coef, decoded_intercept = decode_json(payload)
+    # f1 = score_model(model, X, y, coef=decoded_coef, intercept=decoded_intercept)
+    # rows.append(("json_nested_f32", len(payload), gzip_size(payload), f1))
+    #
+    # payload = json_payload(coef, intercept, flat=True)
+    # decoded_coef, decoded_intercept = decode_json(payload)
+    # f1 = score_model(model, X, y, coef=decoded_coef, intercept=decoded_intercept)
+    # rows.append(("json_flat_f32", len(payload), gzip_size(payload), f1))
+    #
+    # payload = pack_float32(coef, intercept)
+    # decoded_coef, decoded_intercept = decode_f32(payload)
+    # f1 = score_model(model, X, y, coef=decoded_coef, intercept=decoded_intercept)
+    # rows.append(("bin_f32", len(payload), gzip_size(payload), f1))
+    #
+    # payload = pack_float16(coef, intercept)
+    # decoded_coef, decoded_intercept = decode_f16(payload)
+    # f1 = score_model(model, X, y, coef=decoded_coef, intercept=decoded_intercept)
+    # rows.append(("bin_f16", len(payload), gzip_size(payload), f1))
+    #
+    # payload, clipped = pack_int8_fixed_scale(coef, intercept, scale=0.1)
+    # decoded_coef, decoded_intercept = decode_int8(payload)
+    # f1 = score_model(model, X, y, coef=decoded_coef, intercept=decoded_intercept)
+    # rows.append(("bin_int8_0p1", len(payload), gzip_size(payload), f1))
+    #
+    # payload = tsv_payload(coef, intercept)
+    # decoded_coef, decoded_intercept = decode_tsv(payload)
+    # f1 = score_model(model, X, y, coef=decoded_coef, intercept=decoded_intercept)
+    # rows.append(("tsv_f32_1dp", len(payload), gzip_size(payload), f1))
+    #
+    # payload = tsv_payload_int10(coef, intercept)
+    # decoded_coef, decoded_intercept = decode_tsv_int10(payload)
+    # f1 = score_model(model, X, y, coef=decoded_coef, intercept=decoded_intercept)
+    # rows.append(("tsv_int10", len(payload), gzip_size(payload), f1))
 
     print(f"Classes: {n_classes}")
     print(f"Features: {n_features}")

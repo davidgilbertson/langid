@@ -110,11 +110,16 @@ def train_model(
         with stopwatch(
             f"Training on {len(features_df):,} rows, {len(X.columns)} features, and {y.nunique()} languages"
         ):
+            max_iter=1000
             model = LogisticRegression(
-                max_iter=1000,
+                max_iter=max_iter,
                 class_weight="balanced",
             )
             model.fit(X_trn, y_trn)
+            if model.n_iter_[0] >= max_iter:
+                print(
+                    "WARNING: LogisticRegression reached max_iter; consider increasing max_iter or revisiting scaling."
+                )
 
     # We reorder model weights by importance, and reorder data to match
     model, X, X_trn, X_val = reorder_model_and_data(

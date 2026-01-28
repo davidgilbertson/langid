@@ -85,6 +85,20 @@ def round_model(model: LogisticRegression) -> LogisticRegression:
     return rounded_model
 
 
+def shrink_model(
+    model: LogisticRegression, n_features: int | None
+) -> LogisticRegression:
+    if n_features is None:
+        return model
+    shrunk = copy(model)
+    shrunk.coef_ = shrunk.coef_[:, :n_features]
+    if hasattr(shrunk, "feature_names_in_"):
+        shrunk.feature_names_in_ = shrunk.feature_names_in_[:n_features]
+    if hasattr(shrunk, "n_features_in_"):
+        shrunk.n_features_in_ = n_features
+    return shrunk
+
+
 def model_to_dict(model: LogisticRegression) -> dict:
     return {
         "features": model.feature_names_in_.tolist(),

@@ -20,6 +20,8 @@ dependencies = [
   "torch",
   "uvicorn>=0.40.0",
   "plotly>=6.5.2",
+  "brotlicffi>=1.2.0.0",
+  "zstandard>=0.25.0",
 ]
 
 [tool.uv.sources]

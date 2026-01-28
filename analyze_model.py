@@ -1,3 +1,4 @@
+import json
 from typing import NamedTuple
 
 import numpy as np
@@ -11,7 +12,11 @@ from tools import (
     get_rounding,
     round_model,
     set_rounding,
+    shrink_model,
+    model_to_dict,
 )
+
+_UNSET = object()
 
 
 def score(y_true: ArrayLike, y_pred: ArrayLike) -> float:
@@ -39,9 +44,14 @@ def generate_f1_curve(
     X: pd.DataFrame,
     y: pd.Series,
     steps=50,
+    rounding: int | None = _UNSET,
 ) -> pd.DataFrame:
     """Compute F1 as the number of top features increases."""
     assert steps >= 2
+
+    original_rounding = get_rounding()
+    if rounding is not _UNSET:
+        set_rounding(rounding)
 
     rounded_model = round_model(model)
     coef = rounded_model.coef_
@@ -69,6 +79,9 @@ def generate_f1_curve(
         results.append(dict(N=n, F1=f1, SizeKb=size_kb))
         print(f"F1 @ {n=}: {f1:.2%}", end="\r")
 
+    if rounding is not _UNSET:
+        set_rounding(original_rounding)
+
     return pd.DataFrame(results)
 
 
@@ -76,30 +89,40 @@ def generate_rounding_curve(
     model: LogisticRegression,
     X: pd.DataFrame,
     y: pd.Series,
-    max_decimals: int = 6,
+    max_decimals: int = 17,  # 17 is about the max for json.dumps()
+    n_features: int | None = None,
 ) -> pd.DataFrame:
     """Compute F1 after rounding weights to different decimal places."""
 
-    languages = model.classes_
-
     results = []
     original_rounding = get_rounding()
-    for places in list(range(max_decimals + 1)) + [None]:
+    for places in list(range(max_decimals + 1)):
         set_rounding(places)
         rounded_model = round_model(model)
         coef = rounded_model.coef_
         bias = rounded_model.intercept_
+
+        rounded_model = shrink_model(rounded_model, n_features)
+
         f1 = score_model(
             rounded_model,
-            X,
+            X.iloc[:, :n_features] if n_features is not None else X,
             y,
-            coef=coef,
-            bias=bias,
-            languages=languages,
+            # coef=coef,
+            # bias=bias,
+            # languages=model.classes_,
         )
 
-        size_kb = get_gzipped_size_kb(rounded_model)
-        results.append(dict(Decimals=places, F1=f1, SizeKb=size_kb))
+        size_kb = get_gzipped_size_kb(rounded_model, n_features=n_features)
+        json_string = json.dumps(model_to_dict(rounded_model))
+        results.append(
+            dict(
+                Decimals=places,
+                F1=f1,
+                SizeKb=size_kb,
+                ByteLength=len(json_string),
+            )
+        )
         print(f"F1 @ rounding={places}: {f1:.2%}", end="\r")
 
     set_rounding(original_rounding)
